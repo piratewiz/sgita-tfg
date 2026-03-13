@@ -1,4 +1,5 @@
-import type { CreateOrderDto } from "../dtos/order.dto.js";
+import { Types } from "mongoose";
+import type { CreateOrderDto, ReceptionLineDto } from "../dtos/order.dto.js";
 import type { IOrder } from "../models/Order.js";
 import Order from "../models/Order.js";
 import type { IOrderProduct } from "../models/OrderProduct.js";
@@ -45,11 +46,35 @@ export class OrderRepository {
     }
 
     async createOrderLines(orderId: string, lines: {productId: string, expectedQuantity: number}[]): Promise<IOrderProduct[]> {
-        const documents = lines.map((line) => ({...line, orderId}));
-        return OrderProduct.insertMany(documents);
+        if(lines.length === 0) return [];
+
+        const documents = lines.map((line) => ({...line, orderId: new Types.ObjectId(orderId)}))
+        return OrderProduct.insertMany(documents, {lean: true}) as unknown as IOrderProduct[];
     }
 
     async findOrderLines(orderId: string): Promise<IOrderProduct[]> {
         return OrderProduct.find({orderId}).populate('productId', 'name codeProduct unityType')
+    }
+
+    async registerReceptionLines(orderId: string, line: ReceptionLineDto): Promise<IOrderProduct | null> {
+        return OrderProduct.findOneAndUpdate(
+            { orderId, productId: line.productId},
+            {
+                receivedQuantity: line.receivedQuantity,
+                scannedCode: line.scannedCode,
+                expiredDate: new Date(line.expirationDate),
+            },
+            {new: true}
+        )
+    }
+
+
+    async diferences(orderId: string): Promise<boolean> {
+        const difference = await OrderProduct.exists({
+            orderId,
+            receivedQuantity: {$exists: true, $ne: null},
+            $expr: {$ne: ["$receivedQuantity", "$expectedQuantity"]}
+        })
+        return !!difference;
     }
 }
