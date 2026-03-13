@@ -45,7 +45,7 @@ export class OrderRepository {
     }
 
     async createOrderLines(orderId: string, lines: {productId: string, expectedQuantity: number}[]): Promise<IOrderProduct[]> {
-        const documents = lines.map((1) => ({orderId, productId: 1.productId, expectedQuantity: 1.expectedQuantity}));
+        const documents = lines.map((line) => ({...line, orderId}));
         return OrderProduct.insertMany(documents);
     }
 
