@@ -7,6 +7,8 @@ import authRoutes from './routes/auth.routes.js';
 
 dotenv.config();
 
+// pendiente actualizar nuevas rutas y acceso a servicios
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
