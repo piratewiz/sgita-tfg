@@ -1,9 +1,12 @@
 import { AuthRepository } from "../repository/auth.repository.js";
 import bcrypt from "bcryptjs";
+import * as cryptoNode from 'node:crypto';
 import jwt from "jsonwebtoken";
 import type { Request, Response } from "express";
 import type { LoginDto, RegisterEmployeeDto } from "../dtos/auth.dto.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
+import Employee from "../models/Employee.js";
+import { sendResetEmail } from "../config/mailer.js";
 
 
 const repo = new AuthRepository();
@@ -136,4 +139,91 @@ export const me = async(req: AuthRequest, res: Response): Promise<void> => {
 
 export const logout = async(_req: Request, res: Response): Promise<void> => {
     res.status(200).json({message: 'Session closed. Delete clients token'});
+}
+
+
+// post /api/auth/forgot-password
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+    const {email} = req.body;
+
+    if(!email) {
+        res.status(400).json({message: 'Email obligatorio'});
+        return;
+    }
+
+    try {
+        const employee = await repo.findByEmail(email);
+
+        if(!employee || !employee.active) {
+            res.status(200).json({message: 'Si el email existe, recibirás a tu correo un enlace'});
+            return;
+        }
+
+        const token     = cryptoNode.randomBytes(32).toString('hex');
+        const expiry  = new Date(Date.now() + 60 * 60 * 1000); // 1 hora para un sólo uso
+
+
+        // guardamos token hasheado en la base de datos
+        const tokenHash = cryptoNode.createHash('sha256').update(token).digest('hex');
+        await Employee.findByIdAndUpdate(employee._id, {
+            resetToken: tokenHash,
+            resetTokenExpiry: expiry,
+        });
+
+        // enlace para resetear
+        const resetUrl = `${process.env.APP_URL}/reset-password.html?token=${token}`;
+
+        // enviar email
+        await sendResetEmail(employee.email, employee.name, resetUrl);
+ 
+        res.status(200).json({ message: 'Si el email existe, recibirás un enlace en breve' });
+        
+    } catch (error) {
+        console.error('[forgotPassword]', error);
+        res.status(500).json({message: 'Error interno del servidor'});
+    }
+}
+
+
+// post /api/auth/reset-password
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+    const {token, password} = req.body;
+
+    if(!token || !password) {
+        res.status(400).json({message: 'El token y la nueva contraseña con obligatorios'});
+        return;
+    }
+
+    if(password.length < 6) {
+        res.status(400).json({message: 'La contraseña debe tener al menos 6 caracteres.'});
+        return;
+    }
+
+    try {
+        const tokenHash = cryptoNode.createHash('sha256').update(token).digest('hex');
+
+        const employee = await Employee.findOne({
+            resetToken: tokenHash,
+            resetTokenExpiry: {$gt: new Date()},
+        });
+
+        if(!employee) {
+            res.status(400).json({message: 'Enlace inválido o caducado'});
+            return;
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
+
+        await Employee.findByIdAndUpdate(employee._id, {
+            password: passwordHash,
+            resetToken: undefined,
+            resetTokenExpiry: undefined,
+        });
+
+        res.status(200).json({message: 'La contraseña se ha actualizado correctamente.'});
+    } catch (error) {
+        console.error('[resetPassword]', error);
+        res.status(500).json({message: 'Error interno del servidor'});
+    }
 }

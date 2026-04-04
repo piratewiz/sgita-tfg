@@ -13,6 +13,10 @@ router.post(
     register
 )
 
+router.post('/forgot-password', forgotPassword);
+
+router.post('/reset-password', resetPassword);
+
 router.get('/me', verifyToken, me);
 
 router.post('/logout', verifyToken, logout);

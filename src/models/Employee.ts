@@ -13,6 +13,8 @@ export interface IEmployee extends Document {
     password: string;
     active: boolean;
     createdAt: Date;
+    resetToken?: string;
+    resetTokenExpiry?: Date;
 }
 
 const EmployeeSchema = new Schema<IEmployee>({
