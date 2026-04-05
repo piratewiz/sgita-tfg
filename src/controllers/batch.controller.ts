@@ -5,6 +5,7 @@ import { IncidenceRepository } from "../repository/incidence.repository.js";
 import { OrderRepository } from "../repository/order.repository.js";
 import { ProductRepository } from "../repository/product.repository.js";
 import type { RegisterBatchDto, RegisterLotsDto } from "../dtos/batch.dto.js";
+import type { BatchStatus } from "../models/Batch.js";
 
 
 
@@ -18,8 +19,8 @@ const incidenceRepository = new IncidenceRepository();
 // obtener todas las cajas registradas de un pedido
 export const getBatchByOrder = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const lots = await batchRepository.findByProduct(req.params.orderId);
-        const summary = await batchRepository.summaryByProduct(req.params.orderId);
+        const lots = await batchRepository.findByProduct(req.params.orderId as string);
+        const summary = await batchRepository.summaryByProduct(req.params.orderId as string);
         res.json({lots, summary});
     } catch (error) {
         res.status(500).json({message: 'Error trying to obtain lots by order'})
@@ -29,13 +30,13 @@ export const getBatchByOrder = async(req: AuthRequest, res: Response): Promise<v
 // GET /api/lots/status/:status
 export const getLotsByStatus = async (req: AuthRequest, res: Response): Promise<void> => {
     const valid = ['fresh', 'soon to expire', 'expired'];
-    if(!valid.includes(req.params.status)) {
+    if(!valid.includes(req.params.status as string)) {
         res.status(400).json({message: 'Invalid status'});
         return;
     }
 
     try {
-        res.json(await batchRepository.findByStatus(req.params.status as any));
+        res.json(await batchRepository.findByStatus(req.params.status as BatchStatus));
     } catch (error) {
         res.status(500).json({message: 'Error by filtering lots'});
     }
@@ -45,12 +46,13 @@ export const getLotsByStatus = async (req: AuthRequest, res: Response): Promise<
 // para registrar un paquete manualmente
 // POST /api/orders/:orderId/lots
 export const registerLots = async (req:AuthRequest, res: Response): Promise<void> => {
-    const {orderId} = req.params;
+    const {orderId} = req.params as {orderId: string};
     const data: RegisterBatchDto = req.body;
 
     const {batchCode, productId, unitQuantity, expireDate} = data;
     if(!batchCode || !productId || !unitQuantity || !expireDate) {
         res.status(400).json({message: 'Inputs left to complete'});
+        return;
     }
 
     try {
@@ -95,7 +97,7 @@ export const registerLots = async (req:AuthRequest, res: Response): Promise<void
 // registrar varios paquetes a la vez
 // post /api/orders/:orderId/lots/bulk
 export const registerLotsBulk = async(req: AuthRequest, res: Response): Promise<void> => {
-    const {orderId} = req.params;
+    const {orderId} = req.params as {orderId: string};
     const {lots}: RegisterLotsDto = req.body;
 
     if(!lots?.length) {
@@ -158,7 +160,7 @@ export const registerLotsBulk = async(req: AuthRequest, res: Response): Promise<
 // terminar con cierre del pedido, aquí se compara la previsión con los lotes registrados
 // post /api/orders/:orderId/close
 export const closeOrder = async (req: AuthRequest, res: Response): Promise<void> => {
-    const {orderId} = req.params;
+    const {orderId} = req.params as {orderId: string};
 
     try {
         const order = await orderRepository.findById(orderId);

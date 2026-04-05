@@ -1,5 +1,6 @@
 import type { RegisterBatchDto } from "../dtos/batch.dto.js";
 import type { BatchStatus, IBatch } from "../models/Batch.js";
+import { Types } from "mongoose";
 import Batch from "../models/Batch.js";
 
 
@@ -10,9 +11,9 @@ export class BatchRepository {
     async create(data: RegisterBatchDto, orderId: string, employeeId: string): Promise<IBatch> {
         return Batch.create({
             batchCode: data.batchCode,
-            orderId,
-            productId: data.productId,
-            employeeId,
+            orderId: new Types.ObjectId(orderId),
+            productId: new Types.ObjectId(data.productId),
+            employeeId: new Types.ObjectId(employeeId),
             unitQuantity: data.unitQuantity,
             expireDate: new Date(data.expireDate),
         });
@@ -21,13 +22,13 @@ export class BatchRepository {
 
     // registrar varios paquetes a la vez
     async createMany(lots: RegisterBatchDto[], orderId: string, employeeId: string): Promise<IBatch[]> {
-        const docs = lots.map((1) => ({
-            batchCode: 1.batchCode,
-            orderId,
-            productId: 1.productId,
-            employeeId,
-            unitQuantity: 1.unitQuantity,
-            expireDate: new Date(1.expireDate);
+        const docs = lots.map((lot) => ({
+            batchCode: lot.batchCode,
+            orderId: new Types.ObjectId(orderId),
+            productId: new Types.ObjectId(lot.productId),
+            employeeId: new Types.ObjectId(employeeId),
+            unitQuantity: lot.unitQuantity,
+            expireDate: new Date(lot.expireDate),
         }));
         return Batch.insertMany(docs);
     }

@@ -16,7 +16,7 @@ export interface IIncidence extends Document {
 const IncidenceSchema = new Schema<IIncidence>({
     orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
     providerId: { type: Schema.Types.ObjectId, ref: 'Provider', required: true },
-    employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
+    employeeId: { type: Schema.Types.ObjectId, ref: 'Empleado', required: true },
     type: {type: String, enum: ['incorrect quantity', 'expired product', 'damaged product', 'other'], required: true},
     description: {type: String, required: true, trim: true, maxlength: 200},
     status: {type: String, enum: ['open', 'in progress', 'resolved'], default: 'open'},

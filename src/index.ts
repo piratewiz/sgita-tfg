@@ -4,7 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import authRoutes from './routes/auth.routes.js';
-import { incidenceRoutes, orderRoutes, productRoutes, providerRoutes, truckRoutes } from './routes/index.routes.js';
+import { incidenceRoutes, orderRoutes, productRoutes, providerRoutes, truckRoutes, employeesRoutes } from './routes/index.routes.js';
 import { getBatchByOrder } from './controllers/batch.controller.js';
 import { batchRouterStatus } from './routes/batch.routes.js';
 import { initCron } from './config/cron.js';
@@ -30,6 +30,7 @@ app.use('/api/orders', getBatchByOrder); // /api/orders/:orderId/lots
 app.use('/api/lots', batchRouterStatus); // /api/lots/status/:status
 app.use('/api/products', productRoutes);
 app.use('/api/incidences', incidenceRoutes);
+app.use('/api/employees', employeesRoutes);
 
 app.get('/api/health', (_req, res) => {
     res.json({status: 'ok', message: 'Server is running'});

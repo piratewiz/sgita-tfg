@@ -130,10 +130,10 @@ function emptyRow(cols, msg = 'Sin resultados') {
 
 // para inicio
 async function loadInicio() {
-    const [products, employees, orders, incidences] = await Promise.all([apiFetch('/productos'),
-        apiFetch('/empleados'),
-        apiFetch('/pedidos'),
-        apiFetch('/incidencias'),
+    const [products, employees, orders, incidences] = await Promise.all([apiFetch('/products'),
+        apiFetch('/employees'),
+        apiFetch('/orders'),
+        apiFetch('/incidences'),
     ]);
 
 
@@ -169,23 +169,23 @@ async function loadInicio() {
     const tbodyBS = document.querySelector('#tbl-bajo-stock tbody');
     tbodyBS.innerHTML = minStock.length === 0 ? emptyRow(4, 'No hay productos bajo stock mínimo') : minStock.slice(0, 8).map(p => `
         <tr>
-          <td>${p.nombre}</td>
-          <td>${p.categoria}</td>
-          <td><strong>${p.cantidad}</strong> ${p.unidadMedida}</td>
-          <td class="td-soft">${p.stockMinimo} ${p.unidadMedida}</td>
+          <td>${p.name}</td>
+          <td>${p.category}</td>
+          <td><strong>${p.quantity}</strong> ${p.unitType}</td>
+          <td class="td-soft">${p.minStock} ${p.unitType}</td>
         </tr>
         `).join('');
 
 
     // tabla con incidencias abiertas
-    const incHome = incs.filter(i => i.status === 'abierta');
+    const incHome = incs.filter(i => i.status === 'open');
     const tbodyIH = document.querySelector('#tbl-incidencias-home tbody');
     tbodyIH.innerHTML = incHome.length === 0 ? emptyRow(4, 'No hay incidencias abiertas') : incHome.slice(0, 6).map(i => `
             <tr>
-          <td>${i.pedidoId?.numeroPedido || '—'}</td>
-          <td>${i.tipo}</td>
-          <td>${i.proveedorId?.nombre || '—'}</td>
-          <td>${estadoBadge(i.estado)}</td>
+          <td>${i.orderId?.numberOrder || '—'}</td>
+          <td>${i.type}</td>
+          <td>${i.providerId?.name || '—'}</td>
+          <td>${estadoBadge(i.status)}</td>
         </tr>
         `).join('');
 }
@@ -195,13 +195,13 @@ async function loadInicio() {
 let allEmployees = [];
 
 async function loadEmployees() {
-    const data = await apiFetch('/empleados');
+    const data = await apiFetch('/employees');
     allEmployees = data || [];
     renderEmployees();
 }
 
 function renderEmployees() {
-    const search = document.getElementById('search-empleados').ariaValueMax.toLowerCase();
+    const search = document.getElementById('search-empleados').value.toLowerCase();
     const rol = document.getElementById('filter-rol').value;
     const active = document.getElementById('filter-activo').value
 
@@ -243,7 +243,7 @@ document.getElementById('filter-activo').addEventListener('change', renderEmploy
 let allProducts = [];
 
 async function loadProducts() {
-    const data = await apiFetch('/productos');
+    const data = await apiFetch('/products');
     allProducts = data || [];
     renderProducts();
 }
@@ -256,10 +256,10 @@ function renderProducts() {
 
 
     let list = allProducts;
-    if (search)    list = list.filter(p => p.name.toLowerCase().includes(search) || p.codigoProducto?.toLowerCase().includes(search));
+    if (search)    list = list.filter(p => p.name.toLowerCase().includes(search) || p.productCode?.toLowerCase().includes(search));
     if (category) list = list.filter(p => p.category?.toLowerCase() === category.toLowerCase());
     if (status)    list = list.filter(p => p.status === status);
-    if (date)     list = list.filter(p => p.fechaCaducidad && new Date(p.fechaCaducidad) <= new Date(date));
+    if (date)     list = list.filter(p => p.expirationDate && new Date(p.expirationDate) <= new Date(date));
 
   const tbody = document.querySelector('#tbl-productos tbody');
   tbody.innerHTML = list.length === 0
@@ -268,9 +268,9 @@ function renderProducts() {
         <tr>
           <td><span style="font-weight:500">${p.name}</span></td>
           <td>${p.category || '—'}</td>
-          <td style="font-family:var(--font-mono);font-size:12px;color:var(--text-soft)">${p.codigoProducto || '—'}</td>
+          <td style="font-family:var(--font-mono);font-size:12px;color:var(--text-soft)">${p.productCode || '—'}</td>
           <td><strong>${p.quantity}</strong></td>
-          <td class="td-soft">${p.unidadMedida}</td>
+          <td class="td-soft">${p.unitType}</td>
           <td class="td-soft" style="font-family:var(--font-mono);font-size:12px">${formatDate(p.expirationDate)}</td>
           <td>${estadoBadge(p.status)}</td>
         </tr>`).join('');
@@ -286,7 +286,7 @@ document.getElementById('filter-fecha-prod').addEventListener('change', renderPr
 let allOrders = [];
 
 async function loadPrevision () {
-    const data = await apiFetch('/pedidos');
+    const data = await apiFetch('/orders');
     allOrders = data || [];
     renderPrevisions();
 }
@@ -297,7 +297,7 @@ function renderPrevisions() {
 
     let list = allOrders;
     if (status) list = list.filter(p => p.status === status);
-    if (date) list = list.filter(p => p.fechaPrevisionLlegada && formatDate(p.fechaPrevisionLlegada) === formatDate(date));
+    if (date) list = list.filter(p => p.dateArriveOrder && formatDate(p.dateArriveOrder) === formatDate(date));
 
     const container = document.getElementById('previsiones-list');
 
@@ -311,24 +311,24 @@ function renderPrevisions() {
     return `
     <div class="prevision-card">
       <div class="prev-header">
-        <span class="prev-num">${p.numeroPedido}</span>
-        ${estadoBadge(p.estado)}
+        <span class="prev-num">${p.numberOrder}</span>
+        ${estadoBadge(p.status)}
       </div>
       <div class="prev-body">
         <div class="prev-row">
           <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="13" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="17" r="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
           <span class="prev-label">Furgoneta</span>
-          <span class="prev-val">${p.furgonetaId?.matricula || '—'} <span style="color:var(--text-soft);font-weight:400;font-size:12px">${p.furgonetaId?.modelo || ''}</span></span>
+          <span class="prev-val">${p.truckId?.licencePlate || '—'} <span style="color:var(--text-soft);font-weight:400;font-size:12px">${p.truckId?.truckModel || ''}</span></span>
         </div>
         <div class="prev-row">
           <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 016 6c0 4-6 10-6 10S4 12 4 8a6 6 0 016-6z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
           <span class="prev-label">Proveedor</span>
-          <span class="prev-val">${p.proveedorId?.nombre || '—'}</span>
+          <span class="prev-val">${p.providerId?.name || '—'}</span>
         </div>
         <div class="prev-row">
           <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 7v3l2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           <span class="prev-label">Previsto</span>
-          <span class="prev-val" style="font-family:var(--font-mono);font-size:13px">${formatDateTime(p.fechaPrevisionLlegada)}</span>
+          <span class="prev-val" style="font-family:var(--font-mono);font-size:13px">${formatDateTime(p.dateArriveOrder)}</span>
         </div>
         ${lineas.length > 0 ? `
         <div class="prev-productos">
@@ -336,8 +336,8 @@ function renderPrevisions() {
           <div class="prev-product-list">
             ${lineas.slice(0, 5).map(l => `
               <div class="prev-product-item">
-                <span class="prev-product-name">${l.productoId?.nombre || l.productoId || '—'}</span>
-                <span class="prev-product-qty">${l.cantidadEsperada} cajas</span>
+                <span class="prev-product-name">${l.productId?.name || l.productId || '—'}</span>
+                <span class="prev-product-qty">${l.expectedQuantity} cajas</span>
               </div>`).join('')}
             ${lineas.length > 5 ? `<div style="font-size:12px;color:var(--text-xsoft);padding:4px 10px">+${lineas.length - 5} más...</div>` : ''}
           </div>
@@ -375,14 +375,14 @@ function renderIncidences() {
     ? emptyRow(7)
     : list.map(i => `
         <tr>
-          <td style="font-family:var(--font-mono);font-size:12px">${i.pedidoId?.numeroPedido || '—'}</td>
-          <td>${i.proveedorId?.nombre || '—'}</td>
-          <td>${i.tipo}</td>
-          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${i.descripcion}">${i.descripcion}</td>
-          <td>${estadoBadge(i.estado)}</td>
-          <td class="td-soft" style="font-family:var(--font-mono);font-size:12px">${formatDate(i.creadoEn)}</td>
+          <td style="font-family:var(--font-mono);font-size:12px">${i.orderId?.numberOrder || '—'}</td>
+          <td>${i.providerId?.name || '—'}</td>
+          <td>${i.type}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${i.description}">${i.description}</td>
+          <td>${estadoBadge(i.status)}</td>
+          <td class="td-soft" style="font-family:var(--font-mono);font-size:12px">${formatDate(i.createdAt)}</td>
           <td>
-            ${i.estado !== 'resuelta' ? `<button class="btn-action" onclick="openModal('${i._id}', '${i.estado}')">Actualizar</button>` : '—'}
+            ${i.status !== 'resolved' ? `<button class="btn-action" onclick="openModal('${i._id}', '${i.status}')">Actualizar</button>` : '—'}
           </td>
         </tr>`).join('');
 }

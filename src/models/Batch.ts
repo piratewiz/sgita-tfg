@@ -18,7 +18,7 @@ const BatchSchema = new Schema<IBatch>(
         batchCode: {type: String, required: true, trim: true},
         orderId: {type: Schema.Types.ObjectId, ref: 'Order', required: true},
         productId: {type: Schema.Types.ObjectId, ref: 'Product', required: true},
-        employeeId: {types: Schema.Types.ObjectId, ref: 'Employee', required: true},
+        employeeId: {type: Schema.Types.ObjectId, ref: 'Empleado', required: true},
         unitQuantity: {type: Number, required: true, min: 1},
         expireDate: {type: Date, required: true},
         status: {type: String, enum: ['fresh', 'soon to expire', 'expired'], default: 'fresh'},

@@ -4,6 +4,7 @@ import { createProvider, createTruck, deleteProvider, deleteTruck, getProviderBy
 import { createOrder, getOrderById, getOrders, getOrdersByStatus, registerReception } from "../controllers/order.controller.js";
 import { createProduct, deleteProductById, getProductById, getProducts, getProductsByStatus, getProductsByStock, updateProduct } from "../controllers/product.controller.js";
 import { createIncidence, getIncidenceById, getIncidenceByOrderId, getIncidences, updateIncidenceStatus } from "../controllers/incidence.controller.js";
+import employeeRoutes from "./employee.routes.js";
 
 
 const router = Router();
@@ -78,3 +79,8 @@ incidenceRouter.post('/', createIncidence); // IMPORTANTE -> crea incidencia cua
 incidenceRouter.patch('/:id/status', requireRol('admin', 'encargado'), updateIncidenceStatus);
 
 export const incidenceRoutes = incidenceRouter;
+
+// APIS PARA EMPLEADOS
+// ===================
+// /api/employees
+export const employeesRoutes = employeeRoutes;

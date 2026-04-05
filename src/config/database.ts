@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import '../models/index.js'; // Import all models to register them
 
 const connectDB = async () => {
     const url = process.env.MONGODB_URL

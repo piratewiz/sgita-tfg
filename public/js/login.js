@@ -86,7 +86,7 @@ function showAlert(el, msg) {
 // validación del formulario
 function validateLoginForm() {
     let valid = true;
-    const email = inputEmail.ariaValueMax.trim();
+    const email = inputEmail.value.trim();
     const pass = inputPass.value
 
     if(!email) {
@@ -166,7 +166,7 @@ formLogin.addEventListener('submit', async (e) => {
         if(!response.ok) {
             // manejamos credenciales inválidas o campos faltantes
             showAlert(alertLogin, data.message || 'Error al iniciar sesión, inténtalo de nuevo por favor.');
-            if(response,status === 401) {
+            if(response.status === 401) {
                 setFieldError('field-email', 'error-email', ' ');
                 setFieldError('field-password', 'error-password', ' ');
             }
@@ -240,7 +240,7 @@ formForgot.addEventListener('submit', async (e) => {
         if(rol === 'admin' || rol === 'encargado') {
             window.location.replace('/dashboard.html');
         } else {
-            window.localStorage.replace('/employee.html');
+            window.location.replace('/employee.html');
         }
     } catch (error) {
         localStorage.removeItem('sgita_token');
