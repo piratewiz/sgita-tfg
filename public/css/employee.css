@@ -1,0 +1,116 @@
+*, *::before, *::after { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
+ 
+:root {
+  --brand:       #1a56db;
+  --brand-dark:  #1341a8;
+  --brand-light: #eff4ff;
+  --sidebar-bg:  #0f172a;
+  --sidebar-w:   220px;
+  --topbar-h:    60px;
+  --text:        #111827;
+  --text-soft:   #6b7280;
+  --text-xsoft:  #9ca3af;
+  --border:      #e5e7eb;
+  --bg:          #f8fafc;
+  --card-bg:     #ffffff;
+  --input-bg:    #f9fafb;
+  --success:     #059669;
+  --success-bg:  #ecfdf5;
+  --success-brd: #a7f3d0;
+  --error:       #dc2626;
+  --error-bg:    #fef2f2;
+  --error-brd:   #fecaca;
+  --radius:      12px;
+  --radius-sm:   8px;
+  --shadow:      0 1px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  --font:        'DM Sans', sans-serif;
+  --font-mono:   'DM Mono', monospace;
+  --transition:  .16s ease;
+}
+
+html, body {
+    height: 100%;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+}
+
+/*  formatos para sidebar */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    transition: transform var(--transition);
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 18px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.logo { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+
+
+.logo-icon { 
+    width: 32px; 
+    height: 32px; 
+    border-radius: 8px; 
+    background: var(--brand); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-family: var(--font-mono); 
+    font-size: 16px; 
+    font-weight: 500; 
+    color: #fff; 
+    flex-shrink: 0; 
+}
+
+
+.logo-text  { 
+    font-size: 16px; 
+    font-weight: 600; 
+    color: #fff; 
+    letter-spacing: -.3px; 
+}
+ 
+.sidebar-close { 
+    display: none; 
+    background: none; 
+    border: none; 
+    cursor: pointer; 
+    color: rgba(255,255,255,.4); 
+    width: 28px; 
+    height: 28px; 
+    align-items: center; 
+    justify-content: center; 
+    border-radius: 6px; 
+}
+
+
+.sidebar-close svg { 
+    width: 16px; 
+    height: 16px; 
+}
+
+
+/* formatos para tarjeta del empleado  */
