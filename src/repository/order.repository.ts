@@ -77,4 +77,12 @@ export class OrderRepository {
         })
         return !!difference;
     }
+
+    async findByDate(date: string): Promise<IOrder[]> {
+        const start = new Date(date)
+        const end = new Date(date)
+
+        end.setDate(end.getDate() + 1);
+        return Order.find({createdAt: {$gte: start, $lt: end}}).populate('providerId', 'name').populate('truckId', 'licencePlate')
+    }
 }

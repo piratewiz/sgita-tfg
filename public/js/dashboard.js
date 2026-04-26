@@ -152,9 +152,9 @@ async function loadInicio() {
 
 
     document.getElementById('kpi-total').textContent = prods.length;
-    document.getElementById('kpi-frescos').textContent = frescos;
-    document.getElementById('kpi-proximos').textContent = proximos;
-    document.getElementById('kpi-caducados').textContent = caducados;
+    document.getElementById('kpi-frescos').textContent = fresh
+    document.getElementById('kpi-proximos').textContent = soonExpire
+    document.getElementById('kpi-caducados').textContent = expired
     document.getElementById('kpi-empleados').textContent = emps.filter(e => e.active).length;
     document.getElementById('kpi-previsiones').textContent = prevToday;
 
@@ -178,7 +178,7 @@ async function loadInicio() {
 
 
     // tabla con incidencias abiertas
-    const incHome = incs.filter(i => i.status === 'open');
+    const incHome = incs.filter(i => i.status === 'abierta');
     const tbodyIH = document.querySelector('#tbl-incidencias-home tbody');
     tbodyIH.innerHTML = incHome.length === 0 ? emptyRow(4, 'No hay incidencias abiertas') : incHome.slice(0, 6).map(i => `
             <tr>
