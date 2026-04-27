@@ -133,7 +133,7 @@ export const registerReception = async(req: AuthRequest, res: Response): Promise
                 {
                     orderId: id,
                     providerId: order.providerId.toString(),
-                    type: 'invalid quantity',
+                    type: 'incorrect quantity',
                     description: 'Detected some diferences automatically between expected quantity and received',
                 },
                 req.employee!.id

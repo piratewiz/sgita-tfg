@@ -37,6 +37,10 @@ export class BatchRepository {
         return Batch.find({productId}).populate('orderId', 'numberOrder')
     }
 
+    async findByOrder(orderId: string): Promise<IBatch[]> {
+        return Batch.find({orderId: new Types.ObjectId(orderId)}).populate('productId', 'name productCode unitType').populate('orderId', 'numberOrder');
+    }
+
 
     // comprobamos si un código de lote ya existe en ese pedido
     async existsInOrder(batchCode: string, orderId: string): Promise<boolean> {
@@ -48,7 +52,7 @@ export class BatchRepository {
     // creamos resumen de paquetes por producto en un pedido, el objetivo es comparar con la previsión inicial
     async summaryByProduct(orderId: string): Promise<{productId: string; totalBox: number; totalUnits: number}[]> {
         return Batch.aggregate([
-            {$match: {orderId: new (require('mongoose').Types.ObjectId)(orderId)}},
+            {$match: {orderId: new Types.ObjectId(orderId)}},
             {
                 $group: {
                     _id: '$productId',

@@ -19,8 +19,9 @@ const incidenceRepository = new IncidenceRepository();
 // obtener todas las cajas registradas de un pedido
 export const getBatchByOrder = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const lots = await batchRepository.findByProduct(req.params.orderId as string);
-        const summary = await batchRepository.summaryByProduct(req.params.orderId as string);
+        const {orderId} = req.params as {orderId: string};
+        const lots = await batchRepository.findByOrder(orderId);
+        const summary = await batchRepository.summaryByProduct(orderId);
         res.json({lots, summary});
     } catch (error) {
         res.status(500).json({message: 'Error trying to obtain lots by order'})
@@ -169,7 +170,7 @@ export const closeOrder = async (req: AuthRequest, res: Response): Promise<void>
             return;
         }
 
-        if(order.status === 'received') {
+        if(order.status !== 'pending') {
             res.status(400).json({message: 'This order has already been closed'});
             return;
         }
@@ -181,14 +182,20 @@ export const closeOrder = async (req: AuthRequest, res: Response): Promise<void>
         const differences: {productId: string; expected: number; received: number}[] = [];
 
         for (const line of expectedLines) {
-            const productId = (line.productId as any)._id?.toString() ?? line.productId.toString();
-            const received = receivedSummary.find((r) => r.productId.toString() === productId);
-            const receivedPackage =received?.totalBox ?? 0;
+            const rawProductId = (line.productId as any)?._id ?? line.productId;
+            const productId = rawProductId?.toString?.() ?? '';
+            if(!productId) {
+                continue;
+            }
 
-            if(receivedPackage !== line.expectedQuantity) {
+            const received = receivedSummary.find((r) => r.productId.toString() === productId);
+            const receivedPackage = Number(received?.totalBox ?? 0);
+            const expectedPackages = Number(line.expectedQuantity ?? 0);
+
+            if(receivedPackage !== expectedPackages) {
                 differences.push({
                     productId,
-                    expected: line.expectedQuantity,
+                    expected: expectedPackages,
                     received: receivedPackage,
                 });
             }
@@ -196,7 +203,14 @@ export const closeOrder = async (req: AuthRequest, res: Response): Promise<void>
 
 
         const gotDifferences = differences.length > 0;
-        const newStatus = gotDifferences ? 'there is incidence' : 'received';
+        const newStatus = gotDifferences ? 'incidence' : 'received';
+
+        const unitsByProduct = receivedSummary.map((row) => ({
+            productId: row.productId?.toString?.() == "",
+            quantity: Number(row.totalUnits ?? 0),
+        })).filter((row) => row.productId && row.quantity > 0);
+
+        await productRepository.bulkAddProductsToStock(unitsByProduct);
 
         await orderRepository.updateOrderStatus(orderId, newStatus, new Date());
 
@@ -204,19 +218,25 @@ export const closeOrder = async (req: AuthRequest, res: Response): Promise<void>
         if(gotDifferences) {
             const description = differences.map((d) => `Product ${d.productId}: expected ${d.expected} packages, received ${d.received}`).join(' | ');
 
-            await incidenceRepository.createIncidence({
-                orderId,
-                providerId: order.providerId.toString(),
-                type: 'invalid quantity',
-                description,
-            },
-        req.employee!.id);
+            try {
+                await incidenceRepository.createIncidence({
+                    orderId,
+                    providerId: order.providerId.toString(),
+                    type: 'incorrect quantity',
+                    description,
+                },
+            req.employee!.id);
+            } catch (error) {
+                // El pedido ya quedó cerrado; no rompemos la respuesta por un fallo secundario.
+            }
         }
 
         res.json({
-            message: gotDifferences ? 'Order created with some incidences' : 'Order correctly created',
+            message: gotDifferences ? 'Order closed with incidences' : 'Order closed correctly',
             status: newStatus,
             differences: gotDifferences ? differences : [],
+            stockUpdatedProducts: unitsByProduct.length,
+            stockAddedUnits: unitsByProduct.reduce((acc, row) => acc + row.quantity, 0),
         });
     } catch (error) {
         res.status(500).json({message: 'Error trying to close this order'});

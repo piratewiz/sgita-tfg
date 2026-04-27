@@ -37,7 +37,7 @@ function navigate(name) {
     closeSidebar();
 
     // cargamos datos cuando cambiamos de sección
-    const loaders = { inicio: loadInicio, empleados: loadEmpleados, productos: loadProductos, previsiones: loadPrevisiones, incidencias: loadIncidencias };
+    const loaders = { inicio: loadInicio, empleados: loadEmployees, productos: loadProducts, previsiones: loadPrevision, incidencias: loadIncidences };
     loaders[name]?.();
 }
 
@@ -90,11 +90,29 @@ async function apiPatch(path, body) {
         headers: {Authorization: `Bearer ${token}`, 'Content-Type': 'application/json'},
         body: JSON.stringify(body)
     });
-    return response.ok ? response.json() : null;
+
+    if(response.status === 401) {
+      localStorage.removeItem('sgita_token');
+      localStorage.removeItem('sgita_user');
+      window.location.replace('/login.html');
+      return null;
+    }
+
+    const data = await response.json().catch(() => null);
+    return response.ok ? data : null;
 }
 
 function estadoBadge(estado) {
   const map = {
+    'fresh':               '<span class="badge badge-green">Fresh</span>',
+    'soon_expire':         '<span class="badge badge-amber">Soon to expire</span>',
+    'expired':             '<span class="badge badge-red">Expired</span>',
+    'pending':             '<span class="badge badge-blue">Pending</span>',
+    'received':            '<span class="badge badge-green">Received</span>',
+    'incidence':           '<span class="badge badge-red">With incidence</span>',
+    'open':                '<span class="badge badge-red">Open</span>',
+    'in progress':         '<span class="badge badge-amber">In progress</span>',
+    'resolved':            '<span class="badge badge-green">Resolved</span>',
     'fresco':              '<span class="badge badge-green">Fresco</span>',
     'próximo a expirar':   '<span class="badge badge-amber">Próx. a expirar</span>',
     'caducado':            '<span class="badge badge-red">Caducado</span>',
@@ -143,12 +161,12 @@ async function loadInicio() {
     const ords = orders || [];
     const incs = incidences || [];
     
-    const fresh = prods.filter(p => p.status === 'fresco').length;
-    const soonExpire = prods.filter(p => p.status === 'próximo a expirar').length;
-    const expired = prods.filter(p => p.status === 'caducado').length;
+    const fresh = prods.filter(p => p.status === 'fresh').length;
+    const soonExpire = prods.filter(p => p.status === 'soon_expire').length;
+    const expired = prods.filter(p => p.status === 'expired').length;
     const today = new Date().toDateString();
-    const prevToday = ords.filter(order => order.status === 'pendiente' && new Date(order.fechaPrevisionLlegada).toDateString() === today).length;
-    const openIncidences = incs.filter(i => i.status === 'abierta').length;
+    const prevToday = ords.filter(order => order.status === 'pending' && new Date(order.dateArriveOrder).toDateString() === today).length;
+    const openIncidences = incs.filter(i => i.status === 'open').length;
 
 
     document.getElementById('kpi-total').textContent = prods.length;
@@ -178,7 +196,7 @@ async function loadInicio() {
 
 
     // tabla con incidencias abiertas
-    const incHome = incs.filter(i => i.status === 'abierta');
+    const incHome = incs.filter(i => i.status === 'open');
     const tbodyIH = document.querySelector('#tbl-incidencias-home tbody');
     tbodyIH.innerHTML = incHome.length === 0 ? emptyRow(4, 'No hay incidencias abiertas') : incHome.slice(0, 6).map(i => `
             <tr>
@@ -363,12 +381,21 @@ async function loadIncidences() {
 
 function renderIncidences() {
     const search = document.getElementById('search-incidencias').value.toLowerCase();
-    const status = document.getElementById('filter-estado-inc').value
+    const status = document.getElementById('filter-estado-inc').value;
+    const statusFilterMap = {
+        'abierta': 'open',
+        'en gestión': 'in progress',
+        'resuelto': 'resolved',
+        'open': 'open',
+        'in progress': 'in progress',
+        'resolved': 'resolved',
+    };
+    const normalizedStatus = statusFilterMap[status] || '';
 
     let list = allIncidences;
     if(search) list = list.filter(i => (i.orderId?.numberOrder || '').toLowerCase().includes(search) || (i.providerId?.name || '').toLowerCase().includes(search));
 
-    if(status) list = list.filter(i => i.status === status);
+    if(normalizedStatus) list = list.filter(i => i.status === normalizedStatus);
 
     const tbody = document.querySelector('#tbl-incidencias tbody');
   tbody.innerHTML = list.length === 0
@@ -395,40 +422,58 @@ document.getElementById('filter-estado-inc').addEventListener('change', renderIn
 function openModal(id, actualStatus) {
     currentIncID = id;
     const opts = document.querySelectorAll('.estado-opt');
-    opts.forEach(o => o.classList.toggle('selected', o.dataset.val === actualStatus));
+    const statusValueMap = {
+        'abierta': 'open',
+        'en gestión': 'in progress',
+        'resuelto': 'resolved',
+        'open': 'open',
+        'in progress': 'in progress',
+        'resolved': 'resolved',
+    };
+    const normalizedCurrent = statusValueMap[actualStatus] || actualStatus;
+    opts.forEach(o => o.classList.toggle('selected', (statusValueMap[o.dataset.val] || o.dataset.val) === normalizedCurrent));
     document.getElementById('modal-overlay').style.display = 'flex';
+}
 
-    document.getElementById('modal-close').addEventListener('click', () => {
-        document.getElementById('modal-overlay').style.display = 'none';
-    });
+document.getElementById('modal-close').addEventListener('click', () => {
+    document.getElementById('modal-overlay').style.display = 'none';
+});
 
-    document.getElementById('modal-overlay').addEventListener('click', (e) => {
-        if(e.target === e.currentTarget) document.getElementById('modal-overlay').style.display = 'none';
-    });
+document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if(e.target === e.currentTarget) document.getElementById('modal-overlay').style.display = 'none';
+});
 
-    document.querySelectorAll('.estado-opt').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const newStatus = btn.dataset.val;
-            document.querySelectorAll('.estado-opt').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
+document.querySelectorAll('.estado-opt').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const rawStatus = btn.dataset.val;
+        const statusMap = {
+            'abierta': 'open',
+            'en gestión': 'in progress',
+            'resuelto': 'resolved',
+            'open': 'open',
+            'in progress': 'in progress',
+            'resolved': 'resolved',
+        };
+        const newStatus = statusMap[rawStatus] || rawStatus;
+        document.querySelectorAll('.estado-opt').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
 
-            const res = await apiPatch(`/incidencias/${currentIncId}/estado`, { estado: nuevoEstado });
-            if (res) {
+        const res = await apiPatch(`/incidences/${currentIncID}/status`, { status: newStatus });
+        if (res) {
             const idx = allIncidences.findIndex(i => i._id === currentIncID);
-            if (idx !== -1) allIncidences[idx].estado = nuevoEstado;
-            renderIncidences();
+            if (idx !== -1) allIncidences[idx].status = newStatus;
+            await loadIncidences();
 
-            const abiertas = allIncidences.filter(i => i.estado === 'abierta').length;
+            const abiertas = allIncidences.filter(i => i.status === 'open').length;
             const badge = document.getElementById('badge-incidencias');
             badge.textContent = abiertas;
             badge.classList.toggle('visible', abiertas > 0);
-            }
+        }
         
-            setTimeout(() => {
+        setTimeout(() => {
             document.getElementById('modal-overlay').style.display = 'none';
-            }, 300);
-        });
+        }, 300);
     });
-}
+});
 
 loadInicio();

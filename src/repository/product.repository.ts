@@ -9,7 +9,11 @@ export class ProductRepository {
 
 
     async findAll(): Promise<IProduct[]> {
-        return Product.find().populate('providerId', 'name').sort({name: 1 });
+        return Product.find()
+            .select('name category productCode unitType quantity minStock status expirationDate providerId updatedAt')
+            .populate('providerId', 'name')
+            .sort({name: 1 })
+            .lean() as unknown as IProduct[];
     }
 
     async findById(id: string): Promise<IProduct | null> {
@@ -42,6 +46,21 @@ export class ProductRepository {
             {$inc: {quantity}, updatedAt: new Date()},
             {new: true}
         )
+    }
+
+    async bulkAddProductsToStock(items: {productId: string; quantity: number }[]): Promise<void> {
+        const validItems = items.filter((item) => item.productId && Number(item.quantity) > 0);
+        if(validItems.length === 0) return;
+
+        const now = new Date();
+        await Product.bulkWrite(
+            validItems.map((item) => ({
+                updateOne: {
+                    filter: {_id: item.productId},
+                    update: {$inc: {quantity: Number(item.quantity)}, $set: {updatedAt: now}},
+                },
+            }))
+        );
     }
 
     async updateStatus(id: string, status: ProductStatus): Promise<IProduct | null> {

@@ -24,9 +24,9 @@ let linesPrevision = [];
 let allProducts = [];
 
 const titleMap = {
-    orders: 'Mis pedidos',
-    register: 'Registrar cajas',
-    products: 'Estado del stock'
+    pedidos: 'Mis pedidos',
+    registro: 'Registrar cajas',
+    productos: 'Estado del stock'
 };
 
 function navigate(name) {
@@ -38,14 +38,14 @@ function navigate(name) {
     closeSidebar();
 
     const loaders = {
-        orders: loadOrders,
-        register: renderRegister,
-        products: loadProducts
+        pedidos: loadOrders,
+        registro: renderRegister,
+        productos: loadProducts
     };
     loaders[name]?.();
 }
 
-document.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => navigate(b.CDATA_SECTION_NODE.section)));
+document.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => navigate(b.dataset.section)));
 
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('overlay');
@@ -98,15 +98,31 @@ function formatDateTime(d) {
     return new Date(d).toLocaleString('es-ES', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'});
 }
 
+function getOrderProductsFromLines(lines) {
+    const unique = new Map();
+    (lines || []).forEach((line) => {
+        const product = line?.productId;
+        if(!product) return;
+        const id = typeof product === 'string' ? product : product._id;
+        if(!id || unique.has(id)) return;
+        unique.set(id, {
+            _id: id,
+            name: product.name || `Producto ${id}`,
+            productCode: product.productCode || '',
+        });
+    });
+    return Array.from(unique.values());
+}
 
-function badgeStatus(status) {
+
+function statusBadge(status) {
     const map = {
-    'fresco':            '<span class="badge badge-green">Fresco</span>',
-    'próximo a expirar': '<span class="badge badge-amber">Próx. a expirar</span>',
-    'caducado':          '<span class="badge badge-red">Caducado</span>',
-    'pendiente':         '<span class="badge badge-blue">Pendiente</span>',
-    'recibido':          '<span class="badge badge-green">Recibido</span>',
-    'con incidencia':    '<span class="badge badge-amber">Con incidencia</span>',
+    'fresh':            '<span class="badge badge-green">Fresh</span>',
+    'soon_expire':      '<span class="badge badge-amber">Soon to expire</span>',
+    'expired':          '<span class="badge badge-red">Expired</span>',
+    'pending':          '<span class="badge badge-blue">Pending</span>',
+    'received':         '<span class="badge badge-green">Received</span>',
+    'incidence':        '<span class="badge badge-amber">With incidence</span>',
     };
 
     return map[status] || `<span class="badge">${status}</span>`;
@@ -126,11 +142,11 @@ function hideAlert(id) {
 }
 
 
-async function loadPedidos() {
+async function loadOrders() {
   const container = document.getElementById('pedidos-list');
   container.innerHTML = '<div class="empty-state">Cargando...</div>';
  
-  const r = await apiFetch('/pedidos/estado/pendiente');
+  const r = await apiFetch('/orders/status/pending');
   const pedidos = r?.data || [];
  
   const badge = document.getElementById('badge-pedidos');
@@ -145,28 +161,28 @@ async function loadPedidos() {
   container.innerHTML = pedidos.map(p => `
     <div class="pedido-card">
       <div class="pc-header">
-        <span class="pc-num">${p.numeroPedido}</span>
-        ${estadoBadge(p.estado)}
+        <span class="pc-num">${p.numberOrder}</span>
+        ${statusBadge(p.status)}
       </div>
       <div class="pc-body">
         <div class="pc-row">
           <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 016 6c0 4-6 10-6 10S4 12 4 8a6 6 0 016-6z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
           <span class="pc-label">Proveedor</span>
-          <span class="pc-val">${p.proveedorId?.nombre || '—'}</span>
+          <span class="pc-val">${p.providerId?.nombre || '—'}</span>
         </div>
         <div class="pc-row">
           <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="13" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="17" r="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
           <span class="pc-label">Furgoneta</span>
-          <span class="pc-val">${p.furgonetaId?.matricula || '—'} <span style="font-weight:400;color:var(--text-soft);font-size:11px">${p.furgonetaId?.modelo || ''}</span></span>
+          <span class="pc-val">${p.truckId?.licencePlate || '—'} <span style="font-weight:400;color:var(--text-soft);font-size:11px">${p.truckId?.truckModel || ''}</span></span>
         </div>
         <div class="pc-row">
           <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 7v3l2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           <span class="pc-label">Previsto</span>
-          <span class="pc-val" style="font-family:var(--font-mono);font-size:12px">${formatDateTime(p.fechaPrevisionLlegada)}</span>
+          <span class="pc-val" style="font-family:var(--font-mono);font-size:12px">${formatDateTime(p.dateArriveOrder)}</span>
         </div>
       </div>
       <div class="pc-footer">
-        <button class="btn-seleccionar" onclick="seleccionarPedido('${p._id}')">Comenzar recepción →</button>
+        <button class="btn-seleccionar" onclick="selectOrder('${p._id}')">Comenzar recepción →</button>
       </div>
     </div>`).join('');
 }
@@ -179,11 +195,12 @@ async function selectOrder(id) {
     activeOrder = r.data;
     registeredLots = [];
     linesPrevision = r.data.lines || [];
+    orderProducts = getOrderProductsFromLines(linesPrevision);
 
     const rp = await apiFetch('/products');
     allProducts = rp?.data || [];
 
-    navigate('register');
+    navigate('registro');
 }
 
 
@@ -199,17 +216,18 @@ function renderRegister() {
         return;
     }
 
-  document.getElementById('pa-num').textContent        = activeOrder.numeroPedido;
-  document.getElementById('pa-proveedor').textContent  = `Proveedor: ${activeOrder.providorId?.nombre || '—'}`;
-  document.getElementById('pa-furgoneta').textContent  = `Furgoneta: ${activeOrder.truckId?.matricula || '—'}`;
+  document.getElementById('pa-num').textContent        = activeOrder.numberOrder;
+  document.getElementById('pa-proveedor').textContent  = `Proveedor: ${activeOrder.providerId?.name || '—'}`;
+  document.getElementById('pa-furgoneta').textContent  = `Furgoneta: ${activeOrder.truckId?.licencePlate || '—'}`;
   banner.style.display  = 'flex';
   noMsg.style.display   = 'none';
   content.style.display = 'block';
  
   // Llenar select de productos
   const sel = document.getElementById('sel-producto');
+  const productsForOrder = orderProducts.length > 0 ? orderProducts : allProducts;
   sel.innerHTML = '<option value="">Selecciona un producto...</option>' +
-    todosProductos.map(p => `<option value="${p._id}">${p.nombre} (${p.codigoProducto})</option>`).join('');
+    productsForOrder.map(p => `<option value="${p._id}">${p.name}${p.productCode ? ` (${p.productCode})` : ''}</option>`).join('');
 
     renderSummary();
 }
@@ -230,8 +248,8 @@ document.getElementById('btn-registrar-caja').addEventListener('click', async ()
     hideAlert('alert-individual');
     hideAlert('alert-ok-individual');
 
-    const code = document.getElementById('inp-codigo').ariaValueMax.trim();
-    const productId = document.getElementById('sel-producto').ariaValueMax;
+    const code = document.getElementById('inp-codigo').value.trim();
+    const productId = document.getElementById('sel-producto').value;
     const units = parseInt(document.getElementById('inp-unidades').value);
     const caducity = document.getElementById('inp-caducidad').value;
 
@@ -253,17 +271,17 @@ document.getElementById('btn-registrar-caja').addEventListener('click', async ()
 
 
     // comprobar si existe un duplicado local
-    if (registeredLots.some(l => l.codigoLote === code)) {
+    if (registeredLots.some(l => l.batchCode === code)) {
         return showAlert('alert-individual', `El código "${code}" ya fue registrado en esta sesión`);
     }
 
-    const r = await apiFetch(`/orders/${activeOrder._id}/lots`, {
+    const r = await apiFetch(`/orders/${activeOrder._id}/batch`, {
         method: 'POST',
         body: JSON.stringify({
-            codigoLote: code,
+            batchCode: code,
             productId,
             unitQuantity: units,
-            expirationDate: caducity
+            expireDate: caducity
         })
     });
 
@@ -273,11 +291,11 @@ document.getElementById('btn-registrar-caja').addEventListener('click', async ()
 
     const prod = allProducts.find(p => p._id === productId);
     registeredLots.push({
-        codigoLote: code, 
+        batchCode: code, 
         productId, 
         productName: prod?.name || '-',
         unitQuantity: units,
-        expirationDate: caducity
+        expireDate: caducity
     });
 
 
@@ -285,7 +303,7 @@ document.getElementById('btn-registrar-caja').addEventListener('click', async ()
     document.getElementById('inp-codigo').value = '';
     document.getElementById('inp-unidades').value = '';
     document.getElementById('inp-caducidad').value = '';
-    document.getElementById('inp-producto').value = '';
+    document.getElementById('sel-producto').value = '';
 
     showAlert('alert-ok-individual', `Caja "${code}" registrada correctamente`);
     setTimeout(() => hideAlert('alert-ok-individual'), 2500);
@@ -323,10 +341,12 @@ document.getElementById('btn-registrar-bulk').addEventListener('click', async ()
             continue;
         }
 
-        if (registeredLots.some(l => l.codigoLote === codigoLote)) {
+        if (registeredLots.some(l => l.batchCode === codigoLote)) {
             errors.push(`Line ${i+1}: código "${codigoLote}" ya registrado`);
             continue;
         }
+
+        lots.push({batchCode: codigoLote, productId, unitQuantity, expireDate: expirationDate});
     }
 
     if (errors.length > 0) return showAlert('alert-bulk', errors.join('\n'));
@@ -365,16 +385,16 @@ function renderSummary() {
         ptRows.innerHTML = linesPrevision.map(line => {
             const prodId = line.productId?._id || line.productId;
             const name = line.productId?.name || prodId;
-            const awaited = line.awaitedQuantity;
+            const expected = line.expectedQuantity;
             const received = registeredLots.filter(l => l.productId === prodId).length;
-            const cls = received === 0 ? '' : received < awaited ? 'warn' : received > awaited ? 'over' : 'ok';
-            const icon = received === awaited && received > 0 ? '✓' : '';
+            const cls = received === 0 ? '' : received < expected ? 'warn' : received > expected ? 'over' : 'ok';
+            const icon = received === expected && received > 0 ? '✓' : '';
 
             return `<div class="pt-row">
-                    <span class="pt-prod" title="${nombre}">${nombre}</span>
-                    <span class="pt-num">${esperado}</span>
-                    <span class="pt-rec ${cls}">${recibido}${icon}</span>
-                    <span>${recibido === 0 ? '—' : recibido < esperado ? estadoBadge('pendiente') : recibido === esperado ? estadoBadge('recibido') : estadoBadge('con incidencia')}</span>
+                    <span class="pt-prod" title="${name}">${name}</span>
+                    <span class="pt-num">${expected}</span>
+                    <span class="pt-rec ${cls}">${received}${icon}</span>
+                    <span>${recibido === 0 ? '—' : received < expected ? statusBadge('pending') : received === expected ? statusBadge('received') : statusBadge('incidence')}</span>
                     </div>`;
         }).join('');
     }
@@ -386,7 +406,7 @@ function renderSummary() {
     } else {
         boxes.innerHTML = [...registeredLots].reverse().map(l => `
             <div class="caja-item">
-            <span class="caja-code">${l.codigoLote}</span>
+            <span class="caja-code">${l.batchCode}</span>
         <span class="caja-prod">${l.productName}</span>
         <span class="caja-qty">${l.unitQuantity} ud</span>
             </div>`).join('');
@@ -423,12 +443,19 @@ document.getElementById('btn-enviar-inc').addEventListener('click', async () => 
         return showAlert('alert-inc-err', 'La descripción es obligatoria por favor.');
     }
 
+    const typeMap = {
+        'cantidad incorrecta': 'incorrect quantity',
+        'producto caducado': 'expired product',
+        'daño': 'damaged product',
+        'otro': 'other',
+    };
+
     const r = await apiFetch('/incidences', {
         method: 'POST',
         body: JSON.stringify({
             orderId: activeOrder._id,
             providerId: activeOrder.providerId?._id || activeOrder.providerId,
-            type,
+            type: typeMap[type] || type,
             description
         })
     });
@@ -451,7 +478,7 @@ document.getElementById('btn-enviar-inc').addEventListener('click', async () => 
 document.getElementById('btn-cerrar-pedido').addEventListener('click', () => {
     hideAlert('alert-cerrar-err');
     hideAlert('alert-cerrar-ok');
-    document.getElementById('modal-error').style.display = 'flex';
+    document.getElementById('modal-cerrar').style.display = 'flex';
 });
 
 document.getElementById('close-modal-cerrar').addEventListener('click', () => {
@@ -469,24 +496,33 @@ document.getElementById('modal-cerrar').addEventListener('click', e => {
 document.getElementById('btn-confirm-cerrar').addEventListener('click', async () => {
     hideAlert('alert-cerrar-err');
     hideAlert('alert-cerrar-ok');
+    const confirmBtn = document.getElementById('btn-confirm-cerrar');
+    if(confirmBtn.disabled) return;
+    confirmBtn.disabled = true;
 
-    const r = await apiFetch(`/orders/${activeOrder._id}/close`, {
-        method: 'POST'
-    });
+    try {
+        const r = await apiFetch(`/orders/${activeOrder._id}/close`, {
+            method: 'POST'
+        });
 
-    if (!r?.ok) {
-        return showAlert('alert-cerrar-err', r?.data?.message || 'Error al cerrar el pedido');
+        const alreadyClosed = r?.status === 400 && /already been closed/i.test(r?.data?.message || '');
+        if (!r?.ok && !alreadyClosed) {
+            showAlert('alert-cerrar-err', r?.data?.message || 'Error al cerrar el pedido');
+            return;
+        }
+
+        showAlert('alert-cerrar-ok', r?.data?.message || 'Pedido cerrado correctamente');
+
+        setTimeout(() => {
+            document.getElementById('modal-cerrar').style.display = 'none';
+            activeOrder = null;
+            registeredLots = [];
+            linesPrevision = [];
+            navigate('pedidos');
+        }, 1800);
+    } finally {
+        confirmBtn.disabled = false;
     }
-
-    showAlert('alert-cerrar-ok', r.data.message || 'Pedido cerrado correctamente');
-
-    setTimeout(() => {
-        document.getElementById('modal-cerrar').style.display = 'none';
-        activeOrder = null;
-        registeredLots = [];
-        linesPrevision = [];
-        navigate('orders');
-    },2200);
 });
 
 
@@ -513,36 +549,36 @@ function renderStock() {
     const grid = document.getElementById('stock-grid');
 
     const colorMap = {
-        'fresco':            { bg: '#f0fdf4', txt: '#16a34a', dot: '#22c55e' },
-        'próximo a expirar': { bg: '#fffbeb', txt: '#b45309', dot: '#f59e0b' },
-        'caducado':          { bg: '#fef2f2', txt: '#dc2626', dot: '#ef4444' },
+        'fresh':            { bg: '#f0fdf4', txt: '#16a34a', dot: '#22c55e' },
+        'soon_expire': { bg: '#fffbeb', txt: '#b45309', dot: '#f59e0b' },
+        'expired':          { bg: '#fef2f2', txt: '#dc2626', dot: '#ef4444' },
     };
 
     grid.innerHTML = list.length === 0
     ? '<div class="empty-state">No hay productos con ese filtro</div>'
     : list.map(p => {
-        const c = colorMap[p.estado] || { bg: '#f3f4f6', txt: '#4b5563', dot: '#9ca3af' };
+        const c = colorMap[p.status] || { bg: '#f3f4f6', txt: '#4b5563', dot: '#9ca3af' };
         return `
         <div class="stock-card" style="border-top: 3px solid ${c.dot}">
           <div class="sc-top">
             <div>
-              <div class="sc-name">${p.nombre}</div>
-              <div class="sc-cat">${p.categoria || '—'}</div>
+              <div class="sc-name">${p.name}</div>
+              <div class="sc-cat">${p.category || '—'}</div>
             </div>
-            ${estadoBadge(p.estado)}
+            ${estadoBadge(p.status)}
           </div>
           <div>
-            <span class="sc-qty">${p.cantidad}</span>
-            <span class="sc-unit"> ${p.unidadMedida}</span>
+            <span class="sc-qty">${p.quantity}</span>
+            <span class="sc-unit"> ${p.unitType}</span>
           </div>
-          <div class="sc-exp">Caduca: ${formatDate(p.fechaCaducidad)}</div>
+          <div class="sc-exp">Caduca: ${formatDate(p.expirationDate)}</div>
         </div>`;
       }).join('');
 }
 
 
 document.getElementById('search-stock').addEventListener('input', renderStock);
-document.getElementById('filter-estado-stocl').addEventListener('change', renderStock);
+document.getElementById('filter-estado-stock').addEventListener('change', renderStock);
 document.getElementById('filter-cat-stock').addEventListener('change', renderStock);
 
 

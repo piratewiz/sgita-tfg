@@ -17,7 +17,7 @@ router.post('/:orderId/batch', registerLots);
 router.post('/:orderId/lots/bulk', registerLotsBulk);
 
 // encargado cierra pedido y detecta diferencias en caso de haber
-router.post('/:orderId/close', requireRol('admin', 'encargado'), closeOrder);
+router.post('/:orderId/close', closeOrder);
 
 export const batchRouterStatus = Router();
 batchRouterStatus.use(verifyToken);

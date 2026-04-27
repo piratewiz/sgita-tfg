@@ -1,7 +1,7 @@
 export interface CreateIncidenceDto {
     orderId: string;
     providerId: string;
-    type: 'invalid quantity' | 'expired product' | 'damaged' | 'other'
+    type: 'incorrect quantity' | 'expired product' | 'damaged product' | 'other'
     description: string;
 }
 

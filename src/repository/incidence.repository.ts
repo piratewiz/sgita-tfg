@@ -7,7 +7,13 @@ import Incidence from "../models/Incidence.js";
 export class IncidenceRepository {
 
     async findAllIncidences(): Promise<IIncidence[]> {
-        return Incidence.find().populate('orderId', 'numberOrder').populate('providerId', 'name').populate('employeeId', 'name surname')
+        return Incidence.find()
+            .select('orderId providerId employeeId type description status createdAt')
+            .populate('orderId', 'numberOrder')
+            .populate('providerId', 'name')
+            .populate('employeeId', 'name surname')
+            .sort({ createdAt: -1 })
+            .lean() as unknown as IIncidence[];
     }
 
     async findIncidenceById(id: string): Promise<IIncidence | null> {

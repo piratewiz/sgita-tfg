@@ -10,19 +10,28 @@ import OrderProduct from "../models/OrderProduct.js";
 export class OrderRepository {
 
     async findAll(): Promise<IOrder[]> {
-        return Order.find().populate('providerId', 'name').populate('truckId', 'licencePlate model').populate('employeeId', 'name surname')
+        return Order.find().select('numberOrder providerId truckId employeeId dateArriveOrder status createdAt').populate('providerId', 'name').populate('truckId', 'licencePlate truckModel').populate('employeeId', 'name surname').sort({dateArriveOrder: -1}).lean() as unknown as IOrder[];
     }
 
     async findById(id: string): Promise<IOrder | null> {
-        return Order.findById(id).populate('providerId', 'name email phoneNumber').populate('truckId', 'licencePlate model').populate('employeeId',  'name surname numberEmployee')
+        return Order.findById(id)
+            .select('numberOrder providerId truckId employeeId dateArriveOrder dateRealReception status createdAt')
+            .populate('providerId', 'name email phoneNumber')
+            .populate('truckId', 'licencePlate truckModel')
+            .populate('employeeId',  'name surname numberEmployee');
     }
 
     async findOrderByStatus(status: string): Promise<IOrder[]> {
-        return Order.find({status}).populate('providerId', 'name').populate('truckId', 'licencePlate')
+        return Order.find({status})
+            .select('numberOrder providerId truckId dateArriveOrder status createdAt')
+            .populate('providerId', 'name')
+            .populate('truckId', 'licencePlate truckModel')
+            .sort({ dateArriveOrder: -1 })
+            .lean() as unknown as IOrder[];
     }
 
     async findOrderByNumber(orderNumber: string): Promise<IOrder | null> {
-        return Order.findOne({orderNumber})
+        return Order.findOne({ numberOrder: orderNumber });
     }
 
     async create(data: CreateOrderDto, employeeId: string): Promise<IOrder> {
@@ -53,7 +62,7 @@ export class OrderRepository {
     }
 
     async findOrderLines(orderId: string): Promise<IOrderProduct[]> {
-        return OrderProduct.find({orderId}).populate('productId', 'name codeProduct unityType')
+        return OrderProduct.find({orderId}).select('orderId productId expectedQuantity receivedQuantity scannedCode expiredDate').populate('productId', 'name productCode unitType').lean() as unknown as IOrderProduct[];
     }
 
     async registerReceptionLines(orderId: string, line: ReceptionLineDto): Promise<IOrderProduct | null> {
@@ -64,7 +73,7 @@ export class OrderRepository {
                 scannedCode: line.scannedCode,
                 expiredDate: new Date(line.expirationDate),
             },
-            {new: true}
+            {returnDocument: 'after'}
         )
     }
 

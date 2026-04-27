@@ -4,9 +4,8 @@ import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import authRoutes from './routes/auth.routes.js';
 import { incidenceRoutes, orderRoutes, productRoutes, providerRoutes, truckRoutes, employeesRoutes } from './routes/index.routes.js';
-import { getBatchByOrder } from './controllers/batch.controller.js';
-import { batchRouterStatus } from './routes/batch.routes.js';
 import { initCron } from './config/cron.js';
+import batchRoutes, { batchRouterStatus } from './routes/batch.routes.js';
 
 dotenv.config();
 
@@ -24,7 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/trucks', truckRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/orders', getBatchByOrder); // /api/orders/:orderId/lots
+app.use('/api/orders', batchRoutes); // /api/orders/:orderId/lots|batch|lots/bulk|close
 app.use('/api/lots', batchRouterStatus); // /api/lots/status/:status
 app.use('/api/products', productRoutes);
 app.use('/api/incidences', incidenceRoutes);

@@ -25,7 +25,7 @@ const ProductSchema = new Schema<IProduct>({
     minStock: {type: Number, required: true, min: 0, default: 0},
     status: {type: String, required: true, enum: ['fresh', 'soon_expire', 'expired'], default: 'fresh'},
     expirationDate: {type: Date, required: true},
-    providerId: {type: Schema.Types.ObjectId, ref: 'Provider', required: true},
+    providerId: {type: Schema.Types.ObjectId, ref: 'Proveedor', required: true},
     updatedAt: {type: Date, default: Date.now}
 },
 {timestamps: false, versionKey: false}
