@@ -85,9 +85,6 @@ export const registerLots = async (req:AuthRequest, res: Response): Promise<void
         // creamos lote
         const batch = await batchRepository.create(data, orderId, req.employee!.id);
 
-        // sumamos las unidades al stock del producto
-        await productRepository.addProductsToStock(productId, unitQuantity);
-
         res.status(201).json({message: 'Batch correctly registered', batch});
     } catch (error) {
         res.status(500).json({message: 'Error trying to register batch'});
@@ -139,14 +136,8 @@ export const registerLotsBulk = async(req: AuthRequest, res: Response): Promise<
             res.status(400).json({message: 'Errors detected on registration process', errors});
             return;
         }
-
         // creamos todos los lotes
         const createdLots = await batchRepository.createMany(lots, orderId, req.employee!.id);
-
-        // ahora actualizamos el stock actual de cada producto
-        for (const batch of lots) {
-            await productRepository.addProductsToStock(batch.productId, batch.unitQuantity);
-        }
 
         res.status(201).json({
             message: `${createdLots.length} packages correctly created`,
@@ -206,7 +197,7 @@ export const closeOrder = async (req: AuthRequest, res: Response): Promise<void>
         const newStatus = gotDifferences ? 'incidence' : 'received';
 
         const unitsByProduct = receivedSummary.map((row) => ({
-            productId: row.productId?.toString?.() == "",
+            productId: row.productId?.toString?.() ?? "",
             quantity: Number(row.totalUnits ?? 0),
         })).filter((row) => row.productId && row.quantity > 0);
 

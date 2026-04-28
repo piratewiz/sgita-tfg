@@ -1,5 +1,3 @@
-const { setTimeout } = require("timers");
-
 
 const API = '/api';
 
@@ -22,6 +20,7 @@ let activeOrder = null;
 let registeredLots = [];
 let linesPrevision = [];
 let allProducts = [];
+let orderProducts = [];
 
 const titleMap = {
     pedidos: 'Mis pedidos',
@@ -168,7 +167,7 @@ async function loadOrders() {
         <div class="pc-row">
           <svg viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 016 6c0 4-6 10-6 10S4 12 4 8a6 6 0 016-6z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
           <span class="pc-label">Proveedor</span>
-          <span class="pc-val">${p.providerId?.nombre || '—'}</span>
+          <span class="pc-val">${p.providerId?.name || '—'}</span>
         </div>
         <div class="pc-row">
           <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="13" height="8" rx="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="17" r="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
@@ -394,7 +393,7 @@ function renderSummary() {
                     <span class="pt-prod" title="${name}">${name}</span>
                     <span class="pt-num">${expected}</span>
                     <span class="pt-rec ${cls}">${received}${icon}</span>
-                    <span>${recibido === 0 ? '—' : received < expected ? statusBadge('pending') : received === expected ? statusBadge('received') : statusBadge('incidence')}</span>
+                    <span>${received === 0 ? '—' : received < expected ? statusBadge('pending') : received === expected ? statusBadge('received') : statusBadge('incidence')}</span>
                     </div>`;
         }).join('');
     }
@@ -565,7 +564,7 @@ function renderStock() {
               <div class="sc-name">${p.name}</div>
               <div class="sc-cat">${p.category || '—'}</div>
             </div>
-            ${estadoBadge(p.status)}
+            ${statusBadge(p.status)}
           </div>
           <div>
             <span class="sc-qty">${p.quantity}</span>
