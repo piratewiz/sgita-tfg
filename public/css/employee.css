@@ -342,6 +342,7 @@ html, body {
 }
 
 .section.active {
+    width: auto;
     display: block;
 }
 
@@ -366,6 +367,7 @@ html, body {
 
 .page-header p {
     font-size: 13px;
+    width: 300px;
     color: var(--text-soft);
     margin-top: 2px;
 }
@@ -380,6 +382,7 @@ html, body {
 .pedido-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
+  width: 90%;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
@@ -967,6 +970,7 @@ html, body {
 .stock-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
+    width: 70%;
     border-radius: var(--radius);
     padding: 16px;
     box-shadow: var(--shadow);
@@ -1278,7 +1282,7 @@ html, body {
     }
 
     .stock-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
     }
 
     .field-row {

@@ -761,6 +761,6 @@ tbody td {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .kpi-value { font-size: 18px; }
   .filters-bar { flex-direction: column; align-items: stretch; }
-  .filter-group { flex-direction: column; }
-  .filter-group select, .filter-group input[type="date"] { width: 100%; }
+  .filter-group { flex-direction: column; width: 80%; }
+  .filter-group select, .filter-group input[type="date"] { width: 80%; }
 }
