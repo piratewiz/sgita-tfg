@@ -50,7 +50,7 @@ export class OrderRepository {
         return Order.findByIdAndUpdate(
             id,
             {status, ...(dateRealReception && {dateRealReception})},
-            {new: true}
+            {returnDocument: 'after'}
         )
     }
 

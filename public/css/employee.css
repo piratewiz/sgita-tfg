@@ -807,6 +807,15 @@ html, body {
     text-overflow: ellipsis;
 }
 
+.pt-code {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-soft);
+    font-weight: 400;
+    margin-top: 2px;
+}
+
 .pt-num {
     color: var(--text-soft);
     font-family: var(--font-mono);

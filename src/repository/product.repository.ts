@@ -2,6 +2,7 @@ import type { CreateProductDto, UpdateProductDto } from "../dtos/product.dto.js"
 import type { OrderStatus } from "../models/Order.js";
 import type { IProduct, ProductStatus } from "../models/Product.js";
 import Product from "../models/Product.js";
+import { Types } from "mongoose";
 
 
 
@@ -37,26 +38,28 @@ export class ProductRepository {
     }
 
     async update(id: string, data: UpdateProductDto): Promise<IProduct | null> {
-        return Product.findByIdAndUpdate(id, data, {new: true});
+        return Product.findByIdAndUpdate(id, data, {returnDocument: 'after'});
     }
 
     async addProductsToStock(id: string, quantity: number): Promise<IProduct | null> {
         return Product.findByIdAndUpdate(
             id,
             {$inc: {quantity}, updatedAt: new Date()},
-            {new: true}
+            {returnDocument: 'after'}
         )
     }
 
     async bulkAddProductsToStock(items: {productId: string; quantity: number }[]): Promise<void> {
-        const validItems = items.filter((item) => item.productId && Number(item.quantity) > 0);
+        const validItems = items.filter(
+            (item) => item.productId && Types.ObjectId.isValid(item.productId) && Number(item.quantity) > 0
+        );
         if(validItems.length === 0) return;
 
         const now = new Date();
         await Product.bulkWrite(
             validItems.map((item) => ({
                 updateOne: {
-                    filter: {_id: item.productId},
+                    filter: {_id: new Types.ObjectId(item.productId)},
                     update: {$inc: {quantity: Number(item.quantity)}, $set: {updatedAt: now}},
                 },
             }))
@@ -64,7 +67,7 @@ export class ProductRepository {
     }
 
     async updateStatus(id: string, status: ProductStatus): Promise<IProduct | null> {
-        return Product.findByIdAndUpdate(id, {status, updatedAt: new Date()}, {new: true});
+        return Product.findByIdAndUpdate(id, {status, updatedAt: new Date()}, {returnDocument: 'after'});
     }
 
     async updateStatusExpiredProducts(): Promise<void> {
@@ -84,6 +87,28 @@ export class ProductRepository {
             {expirationDate: {$gt: threeDaysLater}},
             {status: 'fresh', updatedAt: new Date()})
         ])
+    }
+
+    async bulkUpdateExpirationAndStatus(items: {productId: string; expirationDate: Date}[]): Promise<void> {
+        if (items.length === 0) return;
+        const today = new Date();
+        const threeDaysLater = new Date();
+        threeDaysLater.setDate(today.getDate() + 3);
+        const now = new Date();
+
+        await Product.bulkWrite(
+            items.map((item) => {
+                const expDate = new Date(item.expirationDate);
+                const status: ProductStatus = expDate < today ? 'expired' : expDate <= threeDaysLater ? 'soon_expire' : 'fresh';
+
+                return {
+                    updateOne: {
+                        filter: {_id: new Types.ObjectId(item.productId)},
+                        update: {$set: {expirationDate: expDate, status, updateAt: now}},
+                    },
+                };
+            })
+        );
     }
 
     async delete(id: string): Promise<IProduct | null> {

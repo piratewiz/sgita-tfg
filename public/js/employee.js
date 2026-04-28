@@ -102,7 +102,8 @@ function getOrderProductsFromLines(lines) {
     (lines || []).forEach((line) => {
         const product = line?.productId;
         if(!product) return;
-        const id = typeof product === 'string' ? product : product._id;
+        const rawId = typeof product === 'string' ? product : product._id;
+        const id = rawId?.toString?.() || '';
         if(!id || unique.has(id)) return;
         unique.set(id, {
             _id: id,
@@ -333,9 +334,10 @@ document.getElementById('btn-registrar-bulk').addEventListener('click', async ()
             continue;
         }
 
-        const [codigoLote, productId, unitsStr, expirationDate] = parts;
+        const [codigoLote, productInputRaw, unitsStr, expirationDate] = parts;
+        const productInput = productInputRaw.trim();
         const unitQuantity = parseInt(unitsStr);
-        if (!codigoLote || !productId || isNaN(unitQuantity) || unitQuantity < 1 || !expirationDate) {
+        if (!codigoLote || !productInput || isNaN(unitQuantity) || unitQuantity < 1 || !expirationDate) {
             errors.push(`Line ${i + 1}: datos inválidos`);
             continue;
         }
@@ -345,7 +347,14 @@ document.getElementById('btn-registrar-bulk').addEventListener('click', async ()
             continue;
         }
 
-        lots.push({batchCode: codigoLote, productId, unitQuantity, expireDate: expirationDate});
+        const normalizedProduct = allProducts.find((p) => p._id === productInput || (p.productCode || '').toLowerCase() === productInput.toLowerCase() || (p.name || '').toLowerCase() === productInput.toLowerCase());
+
+        if (!normalizedProduct) {
+            errors.push(`Line ${i + 1}: producto "${productInput}" no existe`);
+            continue;
+        }
+
+        lots.push({batchCode: codigoLote, productId: normalizedProduct._id.toString(), unitQuantity, expireDate: expirationDate});
     }
 
     if (errors.length > 0) return showAlert('alert-bulk', errors.join('\n'));
@@ -356,7 +365,9 @@ document.getElementById('btn-registrar-bulk').addEventListener('click', async ()
     });
 
     if (!r?.ok) {
-        return showAlert('alert-bulk', r?.data?.message || 'Error al registrar las cajas');
+        const backendErrors = Array.isArray(r?.data?.errors) ? r.data.errors : [];
+        const details = backendErrors.length > 0 ? `\n${backendErrors.join('\n')}` : '';
+        return showAlert('alert-bulk', `${r?.data?.message || 'Error al registrar las cajas'}${details}`);
     }
 
     lots.forEach(l => {
@@ -382,15 +393,17 @@ function renderSummary() {
         ptRows.innerHTML = '<div class="pt-empty">Sin datos de previsión</div>';
     } else {
         ptRows.innerHTML = linesPrevision.map(line => {
-            const prodId = line.productId?._id || line.productId;
+            const rawProdId = line.productId?._id || line.productId;
+            const prodId = rawProdId?.toString?.() || '';
             const name = line.productId?.name || prodId;
+            const code = line.productId?.productCode || '';
             const expected = line.expectedQuantity;
-            const received = registeredLots.filter(l => l.productId === prodId).length;
+            const received = registeredLots.filter(l => (l.productId?.toString?.() || '') === prodId).length;
             const cls = received === 0 ? '' : received < expected ? 'warn' : received > expected ? 'over' : 'ok';
             const icon = received === expected && received > 0 ? '✓' : '';
 
             return `<div class="pt-row">
-                    <span class="pt-prod" title="${name}">${name}</span>
+                    <span class="pt-prod" title="${name}">${name}${code ? `<br><small class="pt-code">${code}</small>` : ''}</span>
                     <span class="pt-num">${expected}</span>
                     <span class="pt-rec ${cls}">${received}${icon}</span>
                     <span>${received === 0 ? '—' : received < expected ? statusBadge('pending') : received === expected ? statusBadge('received') : statusBadge('incidence')}</span>
@@ -504,8 +517,8 @@ document.getElementById('btn-confirm-cerrar').addEventListener('click', async ()
             method: 'POST'
         });
 
-        const alreadyClosed = r?.status === 400 && /already been closed/i.test(r?.data?.message || '');
-        if (!r?.ok && !alreadyClosed) {
+        
+        if (!r?.ok) {
             showAlert('alert-cerrar-err', r?.data?.message || 'Error al cerrar el pedido');
             return;
         }

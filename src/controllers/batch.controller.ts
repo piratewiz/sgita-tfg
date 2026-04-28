@@ -6,6 +6,7 @@ import { OrderRepository } from "../repository/order.repository.js";
 import { ProductRepository } from "../repository/product.repository.js";
 import type { RegisterBatchDto, RegisterLotsDto } from "../dtos/batch.dto.js";
 import type { BatchStatus } from "../models/Batch.js";
+import { Types } from "mongoose";
 
 
 
@@ -63,7 +64,7 @@ export const registerLots = async (req:AuthRequest, res: Response): Promise<void
             return;
         }
 
-        if(order.status === 'received') {
+        if(order.status !== 'pending') {
             res.status(400).json({message: 'This order has already been closed'});
             return;
         }
@@ -110,12 +111,14 @@ export const registerLotsBulk = async(req: AuthRequest, res: Response): Promise<
             return;
         }
 
-        if(order.status === 'received') {
+        if(order.status !== 'pending') {
             res.status(400).json({message: 'This order has already been closed'});
             return;
         }
 
         const errors: string[] = [];
+        const normalizedLots: RegisterBatchDto[] = [];
+        const payloadBatchCodes = new Set<string>();
 
         for (const batch of lots) {
             // manejamos la validación de campos mínimos
@@ -124,12 +127,41 @@ export const registerLotsBulk = async(req: AuthRequest, res: Response): Promise<
                 continue;
             }
 
-            // manejamos el duplicado
-            const duplicated = await batchRepository.existsInOrder(batch.batchCode, orderId);
-            if(duplicated) {
-                errors.push(`Package ${batch.batchCode}: code already registered on this order`);
+            const batchCode = batch.batchCode.trim();
+            const productInput = batch.productId.trim();
+
+            if (payloadBatchCodes.has(batchCode)) {
+                errors.push(`Package ${batchCode}: duplicated code on request payload`);
                 continue;
             }
+
+            payloadBatchCodes.add(batchCode);
+
+            const parsedUnits = Number(batch.unitQuantity);
+            if(!Number.isFinite(parsedUnits) || parsedUnits < 1) {
+                errors.push(`Package ${batchCode}: units should be greater than 0`);
+                continue;
+            }
+
+            const product = Types.ObjectId.isValid(productInput) ? await productRepository.findById(productInput) : await productRepository.findByCode(productInput);
+            if(!product) {
+                errors.push(`Package ${batchCode}: product "${productInput}" not found`);
+                continue;
+            }
+
+            // manejamos el duplicado
+            const duplicated = await batchRepository.existsInOrder(batchCode, orderId);
+            if(duplicated) {
+                errors.push(`Package ${batchCode}: code already registered on this order`);
+                continue;
+            }
+
+            normalizedLots.push({
+                batchCode,
+                productId: product._id.toString(),
+                unitQuantity: parsedUnits,
+                expireDate: batch.expireDate,
+            });
         }
 
         if(errors.length) {
@@ -137,7 +169,7 @@ export const registerLotsBulk = async(req: AuthRequest, res: Response): Promise<
             return;
         }
         // creamos todos los lotes
-        const createdLots = await batchRepository.createMany(lots, orderId, req.employee!.id);
+        const createdLots = await batchRepository.createMany(normalizedLots, orderId, req.employee!.id);
 
         res.status(201).json({
             message: `${createdLots.length} packages correctly created`,
@@ -202,6 +234,14 @@ export const closeOrder = async (req: AuthRequest, res: Response): Promise<void>
         })).filter((row) => row.productId && row.quantity > 0);
 
         await productRepository.bulkAddProductsToStock(unitsByProduct);
+
+        const maxExpireDates = await batchRepository.maxExpireDataByProduct(orderId);
+        const expirationUpdates = maxExpireDates.map((row) => ({
+            productId: row.productId?.toString?.() ?? '',
+            expirationDate: row.maxExpireDate,
+        })).filter((row) => row.productId);
+
+        await productRepository.bulkUpdateExpirationAndStatus(expirationUpdates);
 
         await orderRepository.updateOrderStatus(orderId, newStatus, new Date());
 

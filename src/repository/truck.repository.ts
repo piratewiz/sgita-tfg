@@ -24,11 +24,11 @@ export class TruckRepository {
     }
 
     async update(id: string, data: UpdateTruckDto): Promise<ITruck | null> {
-        return Truck.findByIdAndUpdate(id, data, { new: true });
+        return Truck.findByIdAndUpdate(id, data, { returnDocument: 'after' });
     }
 
     async desactivate(id: string): Promise<ITruck | null> {
-        return Truck.findByIdAndUpdate(id, {active: false}, {new: true});
+        return Truck.findByIdAndUpdate(id, {active: false}, {returnDocument: 'after'});
     }
     
 

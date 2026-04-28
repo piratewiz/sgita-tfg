@@ -124,7 +124,7 @@ export const registerReception = async(req: AuthRequest, res: Response): Promise
         )
 
         const hasDifferences = await orderRepository.diferences(id);
-        const newStatus = hasDifferences ? 'incident' : 'received';
+        const newStatus = hasDifferences ? 'incidence' : 'received';
         const updatedOrder = await orderRepository.updateOrderStatus(id, newStatus, new Date());
 
         // si hay incidencia, crearla automáticamente

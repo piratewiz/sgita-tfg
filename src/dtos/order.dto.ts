@@ -14,7 +14,7 @@ export interface CreateOrderDto {
 
 
 export interface UpdateOrderStatusDto {
-    status: 'pending' | 'received' | 'incident';
+    status: 'pending' | 'received' | 'incidence';
     realDateReception?: string;
 }
 

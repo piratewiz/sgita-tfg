@@ -33,6 +33,6 @@ export class IncidenceRepository {
     }
 
     async updateIncidenceStatus(id: string, data: UpdateIncidenceDto): Promise<IIncidence | null> {
-        return Incidence.findByIdAndUpdate(id, data, {new: true})
+        return Incidence.findByIdAndUpdate(id, data, {returnDocument: 'after'});
     }
 }

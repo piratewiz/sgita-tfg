@@ -81,4 +81,17 @@ export class BatchRepository {
         return Batch.find({status}).populate('productId', 'category name').populate('orderId', 'numberOrder');
     }
 
+    async maxExpireDataByProduct(orderId: string): Promise<{productId: string; maxExpireDate: Date}[]> {
+        return Batch.aggregate([
+            {$match: {orderId: new Types.ObjectId(orderId)}},
+            {
+                $group: {
+                    _id: '$productId',
+                    maxExpireDate: {$max: '$expireDate'},
+                },
+            },
+            {$project: {productId: '$_id', maxExpireDate: 1, _id: 0}},
+        ]);
+    }
+
 }

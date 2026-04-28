@@ -21,10 +21,10 @@ export class ProviderRepository {
     }
 
     async update(id: string, data: UpdateProviderDto): Promise<IProvider | null> {
-        return Provider.findByIdAndUpdate(id, data, {new: true});
+        return Provider.findByIdAndUpdate(id, data, {returnDocument: 'after'});
     }
 
     async desactivate(id: string): Promise<IProvider | null> {
-        return Provider.findByIdAndUpdate(id, {active: false}, {new: true});
+        return Provider.findByIdAndUpdate(id, {active: false}, {returnDocument: 'after'});
     }
 }
