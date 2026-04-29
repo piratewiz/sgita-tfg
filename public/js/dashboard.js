@@ -171,9 +171,9 @@ async function loadInicio() {
 
 
     document.getElementById('kpi-total').textContent = prods.length;
-    document.getElementById('kpi-frescos').textContent = fresh
-    document.getElementById('kpi-proximos').textContent = soonExpire
-    document.getElementById('kpi-caducados').textContent = expired
+    document.getElementById('kpi-frescos').textContent = fresh;
+    document.getElementById('kpi-proximos').textContent = soonExpire;
+    document.getElementById('kpi-caducados').textContent = expired;
     document.getElementById('kpi-empleados').textContent = emps.filter(e => e.active).length;
     document.getElementById('kpi-previsiones').textContent = prevToday;
 
@@ -184,14 +184,27 @@ async function loadInicio() {
 
 
     // tabla stock
-    const minStock = prods.filter(p => p.quantity <= p.minStock);
+    const defaultMinStock = 10;
+    const calculatedMinStock = prods
+      .map(p => {
+        const configuredMin = Number(p.minStock);
+        const effectiveMinStock = configuredMin > 0 ? configuredMin : defaultMinStock;
+        return { ...p, effectiveMinStock };
+      })
+      .filter(p => Number(p.quantity) <= p.effectiveMinStock);
+    const minStock = calculatedMinStock.length > 0
+      ? calculatedMinStock
+      : [...prods]
+          .sort((a, b) => Number(a.quantity) - Number(b.quantity))
+          .slice(0, 5)
+          .map(p => ({ ...p, effectiveMinStock: Number(p.minStock) > 0 ? Number(p.minStock) : defaultMinStock }));
     const tbodyBS = document.querySelector('#tbl-bajo-stock tbody');
-    tbodyBS.innerHTML = minStock.length === 0 ? emptyRow(4, 'No hay productos bajo stock mínimo') : minStock.slice(0, 8).map(p => `
+    tbodyBS.innerHTML = minStock.length === 0 ? emptyRow(4, 'No hay productos registrados') : minStock.slice(0, 8).map(p => `
         <tr>
           <td>${p.name}</td>
           <td>${p.category}</td>
           <td><strong>${p.quantity}</strong> ${p.unitType}</td>
-          <td class="td-soft">${p.minStock} ${p.unitType}</td>
+          <td class="td-soft">${p.effectiveMinStock} ${p.unitType}</td>
         </tr>
         `).join('');
 
