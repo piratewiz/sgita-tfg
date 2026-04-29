@@ -988,7 +988,7 @@ html, body {
 .stock-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
-    width: 70%;
+    width: 80%;
     border-radius: var(--radius);
     padding: 16px;
     box-shadow: var(--shadow);
