@@ -1,7 +1,6 @@
-# SGITA — Sistema de Gestión Integral de Trazabilidad de Almacén
+# SGITA — Sistema de Gestión Inteligente de Trazabilidad Alimentaria
 
-Backend REST API para la gestión operativa de un almacén: recepción de pedidos de proveedores, registro de lotes/paquetes, control de stock de productos, seguimiento de incidencias y actualización automática de estados de caducidad.
-
+Backend REST API para la gestión operativa de un restaurante: recepción de pedidos de proveedores, registro de lotes/paquetes, control de stock de productos, seguimiento de incidencias y actualización automática de estados de caducidad.
 ---
 
 ## Requisitos previos

@@ -184,6 +184,32 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     }
 }
 
+export const verifyResetToken = async (req: Request, res: Response): Promise<void> => {
+    const {token} = req.body;
+
+    if(!token) {
+        res.status(400).json({message: 'El token es obligatorio'});
+        return;
+    }
+
+    try {
+        const tokenHash = cryptoNode.createHash('sha256').update(token).digest('hex');
+
+        const employee = await Employee.findOne({
+            resetToken: tokenHash,
+            resetTokenExpiry: {$gt: new Date()},
+        });
+
+        if(!employee) {
+            res.status(400).json({message: 'Enlace inválido o caducado.'});
+            return;
+        }
+        res.status(200).json({name: employee.name, email: employee.email});
+    } catch (error) {
+        console.error('[verifyResetToken]', error);
+        res.status(500).json({message: 'Error interno del servidor'});
+    }
+}
 
 // post /api/auth/reset-password
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {

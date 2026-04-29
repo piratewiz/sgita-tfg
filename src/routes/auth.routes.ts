@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import {login, register, me, logout, forgotPassword, resetPassword} from '../controllers/auth.controller.js';
+import {login, register, me, logout, forgotPassword, resetPassword, verifyResetToken} from '../controllers/auth.controller.js';
 import { requireRol, verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -14,6 +14,8 @@ router.post(
 )
 
 router.post('/forgot-password', forgotPassword);
+
+router.post('/verify-reset-token', verifyResetToken);
 
 router.post('/reset-password', resetPassword);
 

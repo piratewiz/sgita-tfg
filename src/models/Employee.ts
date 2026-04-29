@@ -27,7 +27,9 @@ const EmployeeSchema = new Schema<IEmployee>({
     email: {type: String, required: true, unique: true, lowercase: true, trim: true},
     password: {type: String, required: true},
     active: {type: Boolean, default: true},
-    createdAt: {type: Date, default: Date.now}
+    createdAt: {type: Date, default: Date.now},
+    resetToken: {type: String, default: null},
+    resetTokenExpiry: {type: Date, default: null},
 },
 {timestamps: false, versionKey: false}
 );

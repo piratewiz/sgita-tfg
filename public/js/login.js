@@ -217,7 +217,7 @@ formForgot.addEventListener('submit', async (e) => {
         }
 
         // si es correcto, mostrar éxito del proceso
-        showAlert(alertForgotOk, 'Si existe una cuenta con tu email, recibirás un enlace en tu correo. Revisa también la carpeta de spam.');
+        showAlert(alertForgotOk, 'Solicitud enviada correctamente. El administrador recibirá un aviso y establecerá una nueva contraseña para tu cuenta en breve.');
 
         inputForgotEmail.value = '';
     } catch (error) {
