@@ -63,12 +63,17 @@ export const getProductById = async (req: Request<{id: string}>, res: Response):
 export const createProduct = async(req: AuthRequest, res: Response): Promise<void> => {
     const data: CreateProductDto = req.body;
     const requireds: (keyof CreateProductDto)[] = [
-        'name', 'category', 'codeProduct', 'unityType', 'quantity', 'expirationDate', 'providorId'
+        'name', 'category', 'codeProduct', 'unityType', 'quantity', 'minStock', 'expirationDate', 'providorId'
     ];
 
     const missings = requireds.filter((c) => data[c] === undefined || data[c] === '');
     if(missings.length) {
         res.status(400).json({message: `Inputs left: ${missings.join(', ')}`});
+        return;
+    }
+
+    if (typeof data.minStock !== 'number' || data.minStock < 0) {
+        res.status(400).json({message: 'minStock must be a number >= 0'});
         return;
     }
 

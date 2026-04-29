@@ -146,12 +146,13 @@ function emptyRow(cols, msg = 'Sin resultados') {
 }
 
 
-// para inicio
+// para panel inicio
 async function loadInicio() {
-    const [products, employees, orders, incidences] = await Promise.all([apiFetch('/products'),
+    const [products, employees, orders, incidences, minStockProducts] = await Promise.all([apiFetch('/products'),
         apiFetch('/employees'),
         apiFetch('/orders'),
         apiFetch('/incidences'),
+        apiFetch('/products/stock'),
     ]);
 
 
