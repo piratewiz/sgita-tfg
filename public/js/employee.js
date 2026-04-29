@@ -11,7 +11,16 @@ if (user?.rol === 'admin' || user?.rol === 'encargado') window.location.replace(
 document.getElementById('emp-name').textContent = `${user.name} ${user.surname}`;
 document.getElementById('emp-role').textContent = user.rol.charAt(0).toUpperCase() + user.rol.slice(1);
 document.getElementById('emp-num').textContent = user.numberEmployee || '-';
-document.getElementById('emp-avatar').textContent = (user.name?.[0] || 'E').toUpperCase();
+const empAvatarEl = document.getElementById('emp-avatar');
+function renderEmpAvatarMarkup(person) {
+    const role = (person?.rol || '').toLowerCase();
+    if (role === 'empleado') {
+        const fullName = `${person?.name || ''} ${person?.surname || ''}`.trim() || 'Empleado';
+        return `<img src="/imgs/avatar-mujer.jpg" alt="Avatar de ${fullName}" class="avatar-photo" />`;
+    }
+    return (person?.name?.[0] || 'E').toUpperCase();
+}
+empAvatarEl.innerHTML = renderEmpAvatarMarkup(user);
 document.getElementById('topbar-date').textContent =
   new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' });
 

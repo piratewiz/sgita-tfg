@@ -14,7 +14,33 @@ const rolLabels = {admin: 'Administrador', encargado: 'Encargado', empleado: 'Em
 
 document.getElementById('user-name').textContent = `${user.name} ${user.surname}`;
 document.getElementById('user-role').textContent = rolLabels[user.rol] || user.rol;
-document.getElementById('user-avatar').textContent = (user.name?.[0] || 'U').toUpperCase();
+const userAvatarEl = document.getElementById('user-avatar');
+
+function getAvatarImageForUser(person) {
+  const role = (person?.rol || '').toLowerCase();
+  const firstName = (person?.name || '').trim().toLowerCase();
+
+  if (role === 'empleado') {
+    return '/imgs/avatar-mujer.jpg';
+  }
+
+  if (role === 'encargado' && firstName === 'john') {
+    return '/imgs/avatar-hombre.jpg';
+  }
+  return '';
+}
+
+function renderAvatarMarkup(person) {
+  const avatarSrc = getAvatarImageForUser(person);
+  if (avatarSrc) {
+    const fullName = `${person?.name || ''} ${person?.surname || ''}`.trim() || 'Usuario';
+    return `<img src="${avatarSrc}" alt="Avatar de ${fullName}" class="avatar-photo" />`;
+  }
+
+  return (person?.name?.[0] || 'U').toUpperCase();
+}
+
+userAvatarEl.innerHTML = renderAvatarMarkup(user)
 
 // pintar fecha en topbar
 const now = new Date();
@@ -250,8 +276,8 @@ function renderEmployees() {
         <tr>
           <td>
             <div style="display:flex;align-items:center;gap:10px;">
-              <div style="width:30px;height:30px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#2563eb;flex-shrink:0;">
-                ${(e.name?.[0] || '?').toUpperCase()}
+              <div style="width:30px;height:30px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#2563eb;flex-shrink:0;overflow:hidden;">
+                ${renderAvatar(e)}
               </div>
               <div>
                 <div style="font-weight:500;font-size:13px;">${e.name} ${e.surname}</div>
