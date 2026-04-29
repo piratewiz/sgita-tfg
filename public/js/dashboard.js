@@ -264,7 +264,7 @@ function renderEmployees() {
     const active = document.getElementById('filter-activo').value
 
     let list = allEmployees;
-    if (search) list = list.filter(e => `${e.name} ${e.surname}`.toLowerCase().includes(search) || e.email.toLowerCase().includes(search) || e.numberEmployee?.toLowerCase().includes(search));
+    if (search) list = list.filter(e => `${e.name || ''} ${e.surname || ''}`.toLowerCase().includes(search) || (e.email || '').toLowerCase().includes(search) || (e.numberEmployee || '').toLowerCase().includes(search));
 
     if(rol) list = list.filter(e => e.rol === rol);
     if(active !== '') list = list.filter(e => String(e.active) === active);
@@ -277,7 +277,7 @@ function renderEmployees() {
           <td>
             <div style="display:flex;align-items:center;gap:10px;">
               <div style="width:30px;height:30px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#2563eb;flex-shrink:0;overflow:hidden;">
-                ${renderAvatar(e)}
+                ${renderAvatarMarkup(e)}
               </div>
               <div>
                 <div style="font-weight:500;font-size:13px;">${e.name} ${e.surname}</div>

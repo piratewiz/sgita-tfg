@@ -14,7 +14,8 @@ document.getElementById('emp-num').textContent = user.numberEmployee || '-';
 const empAvatarEl = document.getElementById('emp-avatar');
 function renderEmpAvatarMarkup(person) {
     const role = (person?.rol || '').toLowerCase();
-    if (role === 'empleado') {
+    const email = (person?.email || '').toLowerCase().trim();
+    if (role === 'empleado' && email !== 'mock.employee@mock.sgita.local') {
         const fullName = `${person?.name || ''} ${person?.surname || ''}`.trim() || 'Empleado';
         return `<img src="/imgs/avatar-mujer.jpg" alt="Avatar de ${fullName}" class="avatar-photo" />`;
     }
