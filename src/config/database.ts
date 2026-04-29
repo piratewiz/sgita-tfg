@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import '../models/index.js'; // Import all models to register them
+import '../models/index.js';
 
 const connectDB = async () => {
     const url = process.env.MONGODB_URL
@@ -9,7 +9,10 @@ const connectDB = async () => {
     }
 
     try {
-        await mongoose.connect(url);
+        await mongoose.connect(url, {
+            serverSelectionTimeoutMS: 60000,
+            connectTimeoutMS: 60000,
+        });
         console.log(`MongoDB connected: ${mongoose.connection.host}`);
         
     } catch (error) {

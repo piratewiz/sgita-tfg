@@ -265,9 +265,12 @@
 
         <section class="section" id="section-previsiones">
 
-            <div class="page-header">
-                <h1>Previsiones de Entrega</h1>
-                <p>Furgonetas y mercancía prevista</p>
+            <div class="page-header page-header--flex">
+                <div>
+                    <h1>Previsiones de Entrega</h1>
+                    <p>Furgonetas y mercancía prevista</p>
+                </div>
+                <button class="btn-primary" id="btn-nueva-prevision">Nueva Previsión</button>
             </div>
 
             <div class="filters-bar">
@@ -345,6 +348,54 @@
                     <button class="estado-opt" data-val="en gestión">En gestión</button>
                     <button class="estado-opt" data-val="resuelto">Resuelto</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-nueva-prevision" style="display: none;">
+        <div class="modal modal--wide">
+            <div class="modal-header">
+                <h3>Nueva Previsión</h3>
+                <button class="modal-close" id="modal-np-close">
+                    <svg viewBox="0 0 20 20" fill="none"><path d="M15 5L5 15M5 5l10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="form-nueva-prevision" autocomplete="off">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="np-number" class="form-label">Nº Pedido</label>
+                            <input type="text" id="np-number" class="form-input" placeholder="Ej. PED-2088-001" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="np-date" class="form-label">Fecha Prevista</label>
+                            <input type="datetime-local" id="np-date" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="np-provider">Proveedor</label>
+                            <select class="form-input" id="np-provider" required>
+                                <option value="">Seleccionar proveedor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="np-truck">Furgoneta</label>
+                            <select id="np-truck" class="form-input" required>
+                                <option value="">Seleccionar Furgoneta</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-section-title">Líneas de producto</div>
+                    <div id="np-lines"></div>
+                    <button type="button" class="btn-add-line" id="btn-add-line">Añadir producto</button>
+
+                    <div id="np-error" class="form-error" style="display: none;"></div>
+
+                    <div class="form-footer">
+                        <button type="button" class="btn-cancel" id="btn-np-cancel">Cancelar</button>
+                        <button type="submit" class="btn-submit" id="btn-np-submit">Registrar Previsión</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

@@ -476,4 +476,143 @@ document.querySelectorAll('.estado-opt').forEach(btn => {
     });
 });
 
+// registrar nuevas previsiones
+// asi consigo no depender del mock de datos, y se hace mas realista la app
+async function previPost(path, body) {
+  const response = await fetch(`${API}${path}`, {
+        method: 'POST',
+        headers: {Authorization: `Bearer ${token}`, 'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+    });
+    if (response.status === 401) {
+        localStorage.removeItem('sgita_token');
+        localStorage.removeItem('sgita_user');
+        window.location.replace('/login.html');
+        return null;
+    }
+    const data = await response.json().catch(() => null);
+    return { ok: response.ok, data };
+}
+
+const modalNP = document.getElementById('modal-nueva-prevision');
+let npProducts = [];
+
+function openNewPrevision() {
+  document.getElementById('form-nueva-prevision').reset();
+  document.getElementById('np-lines').innerHTML = '';
+  document.getElementById('np-error').style.display = 'none';
+  document.getElementById('btn-np-submit').disabled = false;
+  document.getElementById('btn-np-submit').textContent = 'Registrar Previsión';
+  loadNPSelects();
+  addNPLine();
+  modalNP.style.display = 'flex';
+}
+
+function closeNewPrevision() {
+  modalNP.style.display = 'none';
+}
+
+document.getElementById('btn-nueva-prevision').addEventListener('click', openNewPrevision);
+document.getElementById('modal-np-close').addEventListener('click', closeNewPrevision);
+document.getElementById('btn-np-cancel').addEventListener('click', closeNewPrevision);
+modalNP.addEventListener('click', e => {if (e.target === modalNP) closeNewPrevision(); });
+
+async function loadNPSelects() {
+  const [providers, trucks, products] = await Promise.all([
+    apiFetch('/providers'),
+    apiFetch('/trucks'),
+    apiFetch('/products'),
+  ]);
+
+  npProducts = products || [];
+
+  const provSel = document.getElementById('np-provider');
+  provSel.innerHTML = '<option value="">Seleccionar proveedor...</option>' + (providers || []).map(p => `<option value="${p._id}">${p.name}</option>`).join('');
+
+  const truckSel = document.getElementById('np-truck');
+  truckSel.innerHTML = '<option value="">Seleccionar furgoneta...</option>' + (trucks || []).map(t => `<option value="${t._id}">${t.licencePlate}${t.truckModel ? ' – ' + t.truckModel : ''}</option>`).join('');
+
+  document.querySelectorAll('.np-product-sel').forEach(sel => fillProductOptions(sel));
+}
+
+function fillProductOptions(sel) {
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Seleccionar producto...</option>' + npProducts.map(p => `<option value="${p._id}"${p._id === current ? ' selected' : ''}>${p.name}${p.productCode ? ' (' + p.productCode + ')' : ''}</option>`).join('');
+}
+
+function addNPLine() {
+  const container = document.getElementById('np-lines');
+  const div = document.createElement('div');
+  div.className = 'np-line';
+  div.innerHTML = `
+        <select class="form-input np-product-sel" required>
+          <option value="">Seleccionar producto...</option>
+        </select>
+        <input type="number" class="form-input np-qty" min="1" value="1" placeholder="Cant." required />
+        <button type="button" class="btn-remove-line" title="Eliminar línea">×</button>
+    `;
+
+    div.querySelector('.btn-remove-line').addEventListener('click', () => {
+      if (document.querySelectorAll('.np-line').length > 1) div.remove();
+    });
+
+    fillProductOptions(div.querySelector('.np-product-sel'));
+    container.appendChild(div);
+}
+
+document.getElementById('btn-add-line').addEventListener('click', addNPLine);
+
+document.getElementById('form-nueva-prevision').addEventListener('submit', async e => {
+  e.preventDefault();
+  const errorEl = document.getElementById('np-error');
+  errorEl.style.display = 'none';
+
+  const orderNumber = document.getElementById('np-number').value.trim();
+  const providerId = document.getElementById('np-provider').value;
+  const truckId = document.getElementById('np-truck').value;
+  const previsionArrivalDate = document.getElementById('np-date').value;
+
+  const lines = [];
+  let linesValid = true;
+  document.querySelectorAll('.np-line').forEach(row => {
+    const productId = row.querySelector('.np-product-sel').value;
+    const qty = parseInt(row.querySelector('.np-qty').value, 10);
+    if (!productId || !qty || qty < 1) {
+      linesValid = false;
+      return;
+    }
+    lines.push({productId, expectedQuantity: qty});
+  });
+
+  if (!orderNumber || !providerId || !truckId || !previsionArrivalDate) {
+    errorEl.textContent = 'Debes completar todos los campos';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  if (!linesValid || lines.length === 0) {
+    errorEl.textContent = 'Debes añadir al menos una línea de producto válida';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const submitBtn = document.getElementById('btn-np-submit');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Registrando...'
+
+  const result = await previPost('/orders', {orderNumber, providerId, truckId, previsionArrivalDate, lines});
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Registrar Previsión';
+
+  if (!result || !result.ok) {
+    errorEl.textContent = result?.data?.message || 'Error al intentar registrar la previsión';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  closeNewPrevision();
+  await loadPrevision();
+});
+
 loadInicio();

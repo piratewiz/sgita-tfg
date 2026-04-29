@@ -1,14 +1,15 @@
 {
   "name": "sgita",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend REST API para la gestión operativa de un restaurante: recepción de pedidos de proveedores, registro de lotes/paquetes, control de stock de productos, seguimiento de incidencias y actualización automática de estados de caducidad.",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/index.js",
-    "seed:mock": "tsx src/seeds/mock-data.seed.ts"
+    "seed:mock": "tsx src/seeds/mock-data.seed.ts",
+    "seed:masters": "tsx src/seeds/seed-providers-trucks.ts"
   },
   "keywords": [],
   "author": "",
