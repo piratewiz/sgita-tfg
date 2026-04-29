@@ -15,12 +15,17 @@ const rolLabels = {admin: 'Administrador', encargado: 'Encargado', empleado: 'Em
 document.getElementById('user-name').textContent = `${user.name} ${user.surname}`;
 document.getElementById('user-role').textContent = rolLabels[user.rol] || user.rol;
 const userAvatarEl = document.getElementById('user-avatar');
+const MOCK_EMPLOYEE_EMAIL = 'mock.employee@mock.sgita.local';
 
 function getAvatarImageForUser(person) {
   const role = (person?.rol || '').toLowerCase();
+  const email = (person?.email || '').toLowerCase().trim();
   const firstName = (person?.name || '').trim().toLowerCase();
 
   if (role === 'empleado') {
+    if (email === MOCK_EMPLOYEE_EMAIL) {
+      return '';
+    }
     return '/imgs/avatar-mujer.jpg';
   }
 
