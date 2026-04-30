@@ -9,6 +9,10 @@ if (!token || !user) {
     window.location.replace('/login.html');
 }
 
+if (user?.rol === 'empleado') {
+  window.location.replace('/employee.html');
+}
+
 // pintar datos del usuario en el sidebar
 const rolLabels = {admin: 'Administrador', encargado: 'Encargado', empleado: 'Empleado'};
 
