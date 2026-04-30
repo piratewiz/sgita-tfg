@@ -88,11 +88,24 @@ async function apiFetch(path, options = {}) {
     }
 
     const data = await res.json().catch(() => null);
-    return {
-        ok: res.ok,
-        status: res.status,
-        data
-    };
+    return { ok: res.ok, status: res.status, data };
+}
+
+// misma logica de aplicacion de cache para no fetchear constantemente
+// pero aplicado al panel del empleado
+const CACHE_TTL_MS = 2 * 60 * 1000;
+const dataCache = {};
+
+async function cachedGet(path) {
+    const entry = dataCache[path];
+    if (entry && Date.now() - entry.ts < CACHE_TTL_MS) return { ok: true, data: entry.data };
+    const result = await apiFetch(path);
+    if (result?.ok && result.data !== null) dataCache[path] = { data: result.data, ts: Date.now() };
+    return result;
+}
+
+function invalidateCache(path) {
+    delete dataCache[path];
 }
 
 
@@ -158,7 +171,7 @@ async function loadOrders() {
   const container = document.getElementById('pedidos-list');
   container.innerHTML = '<div class="empty-state">Cargando...</div>';
  
-  const r = await apiFetch('/orders/status/pending');
+  const r = await cachedGet('/orders/status/pending');
   const pedidos = r?.data || [];
  
   const badge = document.getElementById('badge-pedidos');
@@ -201,15 +214,17 @@ async function loadOrders() {
 
 
 async function selectOrder(id) {
-    const r = await apiFetch(`/orders/${id}`);
+    const [r, rp] = await Promise.all([
+        apiFetch(`/orders/${id}`),
+        cachedGet('/products'),
+    ]);
+
     if (!r?.ok) return;
 
     activeOrder = r.data;
     registeredLots = [];
     linesPrevision = r.data.lines || [];
     orderProducts = getOrderProductsFromLines(linesPrevision);
-
-    const rp = await apiFetch('/products');
     allProducts = rp?.data || [];
 
     navigate('registro');
@@ -542,6 +557,8 @@ document.getElementById('btn-confirm-cerrar').addEventListener('click', async ()
             activeOrder = null;
             registeredLots = [];
             linesPrevision = [];
+            invalidateCache('/orders/status/pending');
+            invalidateCache('/products');
             navigate('pedidos');
         }, 1800);
     } finally {
@@ -555,7 +572,7 @@ document.getElementById('btn-confirm-cerrar').addEventListener('click', async ()
 let allStock = [];
 
 async function loadProducts() {
-    const r = await apiFetch('/products');
+    const r = await cachedGet('/products');
     allStock = r?.data || [];
     renderStock();
 }

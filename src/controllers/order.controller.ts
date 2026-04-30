@@ -29,14 +29,17 @@ export const getOrders = async(_req: AuthRequest, res: Response): Promise <void>
 // get /api/orders/:id
 export const getOrderById = async (req: Request<{id: string}>, res: Response): Promise<void> => {
     try {
-        const order = await orderRepository.findById(req.params.id);
-        if(!order) {
-            res.status(404).json({message: 'Order not found'});
+        const [order, lines] = await Promise.all([
+            orderRepository.findById(req.params.id),
+            orderRepository.findOrderLines(req.params.id),
+        ]);
+
+        if (!order) {
+            res.status(404).json({message: 'Order was not found'});
             return;
         }
 
-        const lines = await orderRepository.findOrderLines(req.params.id);
-        res.json({...order.toObject(), lines})
+        res.json({...order, lines})
     } catch (error) {
         res.status(500).json({message: 'Error getting order'});
     }

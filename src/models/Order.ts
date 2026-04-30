@@ -27,4 +27,7 @@ const OrderSchema = new Schema<IOrder>({
 },
 {versionKey: false});
 
+OrderSchema.index({status: 1});
+OrderSchema.index({dateArriveOrder: -1});
+
 export default model<IOrder>('Order', OrderSchema);

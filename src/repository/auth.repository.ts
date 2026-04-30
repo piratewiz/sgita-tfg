@@ -27,25 +27,18 @@ export class AuthRepository {
     }
 
     async existsDuplicate(data: Partial<RegisterEmployeeDto>): Promise<string | null> {
-        if(data.email) {
-            const byEmail = await Employee.findOne({email: data.email.toLowerCase().trim()});
-            if(byEmail) return 'Email already exists';
-        }
+        const checks: Promise<string | null>[] = [];
 
-        if(data.dni) {
-            const byDni = await Employee.findOne({dni: data.dni.trim()});
-            if(byDni) return 'DNI already registered';
-        }
+        if (data.email)
+            checks.push(Employee.exists({email: data.email.toLowerCase().trim()}).then(r => r ? 'Email already exists' : null));
+        if (data.dni)
+            checks.push(Employee.exists({dni: data.dni.trim()}).then(r => r ? 'DNI already registered' : null));
+        if (data.nss)
+            checks.push(Employee.exists({nss: data.nss}).then(r => r ? 'NSS already registered' : null));
+        if (data.numberEmployee)
+            checks.push(Employee.exists({numberEmployee: data.numberEmployee}).then(r => r ? 'Employee number already registered' : null));
 
-        if(data.nss) {
-            const byNss = await Employee.findOne({nss: data.nss});
-            if(byNss) return 'NSS already registered';
-        }
-
-        if(data.numberEmployee) {
-            const byNum = await Employee.findOne({numberEmployee: data.numberEmployee});
-            if(byNum) return 'Employee number already registered';
-        }
-        return null;
+        const results = await Promise.all(checks);
+        return results.find(r => r !== null) ?? null;
     }
 }

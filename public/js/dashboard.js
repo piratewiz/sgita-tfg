@@ -119,6 +119,26 @@ async function apiFetch(path) {
     return response.ok ? response.json() : null;
 }
 
+// utilizamos cache en memoria, con esto evito volver hacer fetch todo de nuevo
+// para cada seccion a la que quiero acceder
+const CACHE_TTL_MS = 2 * 60 * 1000
+const dataCache = {};
+
+async function cachedFetch(path){
+  const entry = dataCache[path];
+  if (entry && Date.now() - entry.ts < CACHE_TTL_MS) {
+    return entry.data;
+  }
+  const data = await apiFetch(path);
+
+  if (data !== null) dataCache[path] = {data, ts: Date.now()};
+  return data;
+}
+
+function invalidateCahe(path){
+  delete dataCache[path];
+}
+
 async function apiPatch(path, body) {
     const response = await fetch(`${API}${path}`, {
         method: 'PATCH',
@@ -183,12 +203,17 @@ function emptyRow(cols, msg = 'Sin resultados') {
 
 // para panel inicio
 async function loadInicio() {
-    const [products, employees, orders, incidences, minStockProducts] = await Promise.all([apiFetch('/products'),
-        apiFetch('/employees'),
-        apiFetch('/orders'),
-        apiFetch('/incidences'),
-        apiFetch('/products/stock'),
+    const [products, employees, orders, incidences] = await Promise.all([
+        cachedFetch('/products'),
+        cachedFetch('/employees'),
+        cachedFetch('/orders'),
+        cachedFetch('/incidences'),
     ]);
+
+    allProducts = products || [];
+    allEmployees = employees || [];
+    allOrders = orders || [];
+    allIncidences = incidences || [];
 
 
     // KPIS
@@ -262,7 +287,7 @@ async function loadInicio() {
 let allEmployees = [];
 
 async function loadEmployees() {
-    const data = await apiFetch('/employees');
+    const data = await cachedFetch('/employees');
     allEmployees = data || [];
     renderEmployees();
 }
@@ -310,7 +335,7 @@ document.getElementById('filter-activo').addEventListener('change', renderEmploy
 let allProducts = [];
 
 async function loadProducts() {
-    const data = await apiFetch('/products');
+    const data = await cachedFetch('/products');
     allProducts = data || [];
     renderProducts();
 }
@@ -353,7 +378,7 @@ document.getElementById('filter-fecha-prod').addEventListener('change', renderPr
 let allOrders = [];
 
 async function loadPrevision () {
-    const data = await apiFetch('/orders');
+    const data = await cachedFetch('/orders');
     allOrders = data || [];
     renderPrevisions();
 }
@@ -423,7 +448,7 @@ let allIncidences = [];
 let currentIncID = null;
 
 async function loadIncidences() {
-    const data = await apiFetch('/incidences');
+    const data = await cachedFetch('/incidences');
     allIncidences = data || [];
     renderIncidences();
 }
@@ -511,6 +536,7 @@ document.querySelectorAll('.estado-opt').forEach(btn => {
         if (res) {
             const idx = allIncidences.findIndex(i => i._id === currentIncID);
             if (idx !== -1) allIncidences[idx].status = newStatus;
+            invalidateCahe('/incidences');
             await loadIncidences();
 
             const abiertas = allIncidences.filter(i => i.status === 'open').length;
@@ -568,9 +594,9 @@ modalNP.addEventListener('click', e => {if (e.target === modalNP) closeNewPrevis
 
 async function loadNPSelects() {
   const [providers, trucks, products] = await Promise.all([
-    apiFetch('/providers'),
-    apiFetch('/trucks'),
-    apiFetch('/products'),
+    cachedFetch('/providers'),
+    cachedFetch('/trucks'),
+    cachedFetch('/products'),
   ]);
 
   npProducts = products || [];
@@ -661,6 +687,7 @@ document.getElementById('form-nueva-prevision').addEventListener('submit', async
   }
 
   closeNewPrevision();
+  invalidateCahe('/orders');
   await loadPrevision();
 });
 

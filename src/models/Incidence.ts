@@ -25,4 +25,7 @@ const IncidenceSchema = new Schema<IIncidence>({
     {versionKey: false}
 );
 
+IncidenceSchema.index({status: 1});
+IncidenceSchema.index({orderId: 1});
+
 export default model<IIncidence>('Incidence', IncidenceSchema);

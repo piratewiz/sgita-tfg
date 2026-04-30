@@ -29,5 +29,8 @@ const BatchSchema = new Schema<IBatch>(
 
 // para que no se repita el mismo código de lote dentro del mismo pedido
 BatchSchema.index({batchCode: 1, orderId: 1}, {unique: true});
+BatchSchema.index({orderId: 1});
+BatchSchema.index({expireDate: 1});
+BatchSchema.index({status: 1});
 
 export default model<IBatch>('Batch', BatchSchema);

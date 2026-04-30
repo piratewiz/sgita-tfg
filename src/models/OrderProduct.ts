@@ -20,4 +20,7 @@ const OrderProductSchema = new Schema<IOrderProduct>({
     timestamps: true, versionKey: false
 });
 
+OrderProductSchema.index({orderId: 1});
+OrderProductSchema.index({orderId: 1, productId: 1});
+
 export default model<IOrderProduct>('OrderProduct', OrderProductSchema)

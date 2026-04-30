@@ -31,6 +31,9 @@ const ProductSchema = new Schema<IProduct>({
 {timestamps: false, versionKey: false}
 );
 
+ProductSchema.index({status: 1});
+ProductSchema.index({expirationDate: 1});
+
 ProductSchema.pre('save', async function(){
     this.updatedAt = new Date();
 });

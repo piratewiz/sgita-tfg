@@ -21,8 +21,10 @@ const incidenceRepository = new IncidenceRepository();
 export const getBatchByOrder = async(req: AuthRequest, res: Response): Promise<void> => {
     try {
         const {orderId} = req.params as {orderId: string};
-        const lots = await batchRepository.findByOrder(orderId);
-        const summary = await batchRepository.summaryByProduct(orderId);
+        const [lots, summary] = await Promise.all([
+            batchRepository.findByOrder(orderId),
+            batchRepository.summaryByProduct(orderId),
+        ])
         res.json({lots, summary});
     } catch (error) {
         res.status(500).json({message: 'Error trying to obtain lots by order'})
@@ -116,6 +118,25 @@ export const registerLotsBulk = async(req: AuthRequest, res: Response): Promise<
             return;
         }
 
+        const validRaw = lots.filter(l => l.batchCode && l.productId && l.unitQuantity && l.expireDate);
+        const allBatchCodes = validRaw.map(l => l.batchCode.trim());
+        const productInputs = validRaw.map(l => l.productId.trim());
+
+        const idInputs   = productInputs.filter(p => Types.ObjectId.isValid(p));
+        const codeInputs = productInputs.filter(p => !Types.ObjectId.isValid(p));
+
+        const [productsByIds, productsByCodes, existingCodes] = await Promise.all([
+            idInputs.length   ? productRepository.findByIds(idInputs)     : Promise.resolve([]),
+            codeInputs.length ? productRepository.findByCodes(codeInputs) : Promise.resolve([]),
+            batchRepository.findExistingCodes(allBatchCodes, orderId),
+        ]);
+
+        const productMap = new Map<string, (typeof productsByIds)[0]>();
+        for (const p of [...productsByIds, ...productsByCodes]) {
+            productMap.set(p._id.toString(), p);
+            productMap.set((p as any).productCode, p);
+        }
+
         const errors: string[] = [];
         const normalizedLots: RegisterBatchDto[] = [];
         const payloadBatchCodes = new Set<string>();
@@ -143,15 +164,14 @@ export const registerLotsBulk = async(req: AuthRequest, res: Response): Promise<
                 continue;
             }
 
-            const product = Types.ObjectId.isValid(productInput) ? await productRepository.findById(productInput) : await productRepository.findByCode(productInput);
+            const product = productMap.get(productInput);
             if(!product) {
                 errors.push(`Package ${batchCode}: product "${productInput}" not found`);
                 continue;
             }
 
             // manejamos el duplicado
-            const duplicated = await batchRepository.existsInOrder(batchCode, orderId);
-            if(duplicated) {
+            if(existingCodes.has(batchCode)) {
                 errors.push(`Package ${batchCode}: code already registered on this order`);
                 continue;
             }
@@ -199,28 +219,28 @@ export const closeOrder = async (req: AuthRequest, res: Response): Promise<void>
         }
 
         // obtener la previsión y el resumen de lo recibido
-        const expectedLines = await orderRepository.findOrderLines(orderId);
-        const receivedSummary = await batchRepository.summaryByProduct(orderId);
+        const [expectedLines, receivedSummary] = await Promise.all([
+            orderRepository.findOrderLines(orderId),
+            batchRepository.summaryByProduct(orderId),
+        ]);
+
+        const receivedMap = new Map(
+            receivedSummary.map((r) => [r.productId.toString(), r])
+        );
 
         const differences: {productId: string; expected: number; received: number}[] = [];
 
         for (const line of expectedLines) {
             const rawProductId = (line.productId as any)?._id ?? line.productId;
             const productId = rawProductId?.toString?.() ?? '';
-            if(!productId) {
-                continue;
-            }
+            if(!productId) continue;
 
-            const received = receivedSummary.find((r) => r.productId.toString() === productId);
+            const received = receivedMap.get(productId);
             const receivedPackage = Number(received?.totalBox ?? 0);
             const expectedPackages = Number(line.expectedQuantity ?? 0);
 
             if(receivedPackage !== expectedPackages) {
-                differences.push({
-                    productId,
-                    expected: expectedPackages,
-                    received: receivedPackage,
-                });
+                differences.push({ productId, expected: expectedPackages, received: receivedPackage });
             }
         }
 
@@ -233,7 +253,6 @@ export const closeOrder = async (req: AuthRequest, res: Response): Promise<void>
             quantity: Number(row.totalUnits ?? 0),
         })).filter((row) => row.productId && row.quantity > 0);
 
-        await productRepository.bulkAddProductsToStock(unitsByProduct);
 
         const maxExpireDates = await batchRepository.maxExpireDataByProduct(orderId);
         const expirationUpdates = maxExpireDates.map((row) => ({
@@ -241,7 +260,10 @@ export const closeOrder = async (req: AuthRequest, res: Response): Promise<void>
             expirationDate: row.maxExpireDate,
         })).filter((row) => row.productId);
 
-        await productRepository.bulkUpdateExpirationAndStatus(expirationUpdates);
+        await Promise.all([
+            productRepository.bulkAddProductsToStock(unitsByProduct),
+            productRepository.bulkUpdateExpirationAndStatus(expirationUpdates),
+        ]);
 
         await orderRepository.updateOrderStatus(orderId, newStatus, new Date());
 
