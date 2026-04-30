@@ -9,7 +9,7 @@ import OrderProduct from "../models/OrderProduct.js";
 
 export class OrderRepository {
   async findAll(): Promise<IOrder[]> {
-    return Order.find()
+    const orders = await Order.find()
       .select(
         'numberOrder providerId truckId employeeId dateArriveOrder status createdAt'
       )
@@ -18,6 +18,26 @@ export class OrderRepository {
       .populate('employeeId', 'name surname')
       .sort({ dateArriveOrder: -1 })
       .lean() as unknown as IOrder[]
+
+    if (orders.length === 0) return []
+
+    const orderIds = orders.map((o: any) => o._id)
+    const allLines = await OrderProduct.find({ orderId: { $in: orderIds } })
+      .select('orderId productId expectedQuantity')
+      .populate('productId', 'name productCode unitType')
+      .lean() as unknown as IOrderProduct[]
+
+    const linesByOrderId: Record<string, IOrderProduct[]> = {}
+    for (const line of allLines) {
+      const key = (line.orderId as any).toString()
+      if (!linesByOrderId[key]) linesByOrderId[key] = []
+      linesByOrderId[key].push(line)
+    }
+
+    return orders.map((o: any) => ({
+      ...o,
+      lines: linesByOrderId[o._id.toString()] ?? []
+    })) as unknown as IOrder[]
   }
 
   async findById(id: string): Promise<IOrder | null> {

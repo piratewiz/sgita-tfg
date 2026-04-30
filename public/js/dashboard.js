@@ -399,7 +399,7 @@ function renderPrevisions() {
     }
 
     container.innerHTML = list.map(p => {
-    const lineas = p.lineas || [];
+    const lineas = p.lines || [];
     return `
     <div class="prevision-card">
       <div class="prev-header">
@@ -572,15 +572,15 @@ async function previPost(path, body) {
 const modalNP = document.getElementById('modal-nueva-prevision');
 let npProducts = [];
 
-function openNewPrevision() {
+async function openNewPrevision() {
   document.getElementById('form-nueva-prevision').reset();
   document.getElementById('np-lines').innerHTML = '';
   document.getElementById('np-error').style.display = 'none';
   document.getElementById('btn-np-submit').disabled = false;
   document.getElementById('btn-np-submit').textContent = 'Registrar Previsión';
-  loadNPSelects();
-  addNPLine();
   modalNP.style.display = 'flex';
+  await loadNPSelects();
+  addNPLine();
 }
 
 function closeNewPrevision() {
