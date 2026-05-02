@@ -1,9 +1,33 @@
 node_modules/
+
+logs/
+*.log
+npm-debug.log*
+
 dist/
+build/
+out/
 
 .env
 .env.template
 
+.vscode/
+.idea/
+*.swp
+*~
+*.DS_Store
+*.bak
+*.tmp
+*.lock
+
+*.pem
+*.key
+*.crt
+*.cert
+
 seeds/
 
 tests/
+
+coverage/
+.nyc_output/
